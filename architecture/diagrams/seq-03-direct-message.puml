@@ -1,0 +1,32 @@
+@startuml seq-03-direct-message
+title Runtime: User sends a private direct message
+
+actor Sender
+actor Recipient
+participant "API Gateway" as API
+participant "Messaging Service" as Msg
+participant "PostgreSQL" as PG
+participant "Redis Streams" as Streams
+participant "Notification Service" as Notif
+
+Sender -> API : POST /messages {to: recipient_id, text: "..."}
+API -> Msg : send_dm(sender_id, recipient_id, text)
+Msg -> PG : INSERT INTO messages (sender_id, recipient_id, text)
+PG --> Msg : message_id
+Msg -> Streams : XADD dm.created {message_id, recipient_id}
+Msg --> API : 201 Created
+API --> Sender : 201 Created
+
+== Async ==
+
+Streams -> Notif : XREAD dm.created
+Notif -> PG : INSERT INTO notifications (user_id=recipient_id, type="dm")
+
+Recipient -> API : GET /messages/{conversation_id}
+API -> Msg : get_conversation(user_id, other_user_id)
+Msg -> PG : SELECT * FROM messages WHERE (sender_id, recipient_id) IN (...)
+PG --> Msg : messages
+Msg --> API : messages
+API --> Recipient : 200 OK [messages]
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml c4-01-system-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context — Lightweight Social Network
+
+Person(user, "User", "Reads feed, publishes posts, follows others, sends DMs")
+Person_Ext(admin, "Admin", "Manages users (future)")
+
+System(socialnet, "Social Network", "Handles posts, follows, feed aggregation, notifications, and direct messages")
+
+System_Ext(auth, "Auth Provider", "Issues and validates JWT tokens (e.g. Auth0)")
+System_Ext(push, "Push / Email Provider", "Delivers external notifications (e.g. FCM, SendGrid)")
+
+Rel(user, socialnet, "Uses", "HTTPS / REST")
+Rel(admin, socialnet, "Manages", "HTTPS / REST")
+Rel(socialnet, auth, "Validates tokens", "HTTPS")
+Rel(socialnet, push, "Dispatches notifications", "HTTPS")
+
+@enduml

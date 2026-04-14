@@ -1,0 +1,32 @@
+@startuml seq-01-publish-post
+title Runtime: User publishes a post with @mention
+
+actor User
+participant "API Gateway" as API
+participant "Post Service" as Post
+participant "PostgreSQL" as PG
+participant "Redis Streams" as Streams
+participant "Feed Updater\n(Feed Service)" as FeedUpdater
+participant "Redis Feed Cache" as FeedCache
+participant "Notification Service" as Notif
+
+User -> API : POST /posts {text: "Hello @alice!"}
+API -> Post : publish(author_id, text)
+Post -> Post : parse_mentions(text) → ["alice"]
+Post -> PG : INSERT INTO posts
+PG --> Post : post_id
+Post -> Streams : XADD post.created {post_id, author_id, mentions:["alice"]}
+Post --> API : 201 Created {post_id, permalink}
+API --> User : 201 Created
+
+== Async (background) ==
+
+Streams -> FeedUpdater : XREAD post.created
+FeedUpdater -> PG : SELECT follower_ids WHERE followee = author_id
+PG --> FeedUpdater : [follower_ids]
+FeedUpdater -> FeedCache : ZADD feed:{follower_id} <ts> <post_id> (for each follower)
+
+Streams -> Notif : XREAD post.created
+Notif -> PG : INSERT INTO notifications (user_id="alice", type="mention", post_id)
+
+@enduml

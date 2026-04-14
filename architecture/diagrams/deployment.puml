@@ -1,0 +1,24 @@
+@startuml deployment
+title Deployment View — Single Host (Dev) / Compose
+
+node "Docker Host" {
+    node "api" <<container>> {
+        artifact "FastAPI app\n(all service modules)"
+    }
+    node "worker" <<container>> {
+        artifact "Feed Updater\nNotification Consumer\n(async Redis Streams consumers)"
+    }
+    node "postgres" <<container>> {
+        database "PostgreSQL 16"
+    }
+    node "redis" <<container>> {
+        database "Redis 7"
+    }
+}
+
+[api] --> [postgres] : SQL (port 5432)
+[api] --> [redis] : Redis protocol (port 6379)
+[worker] --> [postgres] : SQL (port 5432)
+[worker] --> [redis] : Redis Streams (port 6379)
+
+@enduml
