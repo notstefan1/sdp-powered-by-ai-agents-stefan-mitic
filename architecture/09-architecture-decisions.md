@@ -13,7 +13,8 @@ Feed reads are the dominant workload. Two strategies exist: fan-out on write (pr
 Use fan-out on write. Each new post is pushed into every follower's Redis sorted set by the Feed Updater consumer.
 
 **Rationale:**
-Feed reads become a single `ZREVRANGE` + batched `SELECT IN` — predictably fast regardless of follower count. For a lightweight network with moderate follower counts, write amplification is acceptable.
+- Feed reads become a single `ZREVRANGE` + batched `SELECT IN` — predictably fast regardless of follower count.
+- For a lightweight network with moderate follower counts, write amplification is acceptable.
 
 **Consequences:**
 - Feed reads are O(1) in Redis.
@@ -33,7 +34,8 @@ Async processing is needed for feed fan-out and notifications. Options: Redis St
 Use Redis Streams with consumer groups.
 
 **Rationale:**
-Redis is already in the stack for feed caching. Redis Streams provide at-least-once delivery, consumer groups for load sharing, and a dead-letter pattern — sufficient for this scope without adding a new infrastructure component.
+- Redis is already in the stack for feed caching.
+- Redis Streams provide at-least-once delivery, consumer groups for load sharing, and a dead-letter pattern — sufficient for this scope without adding a new infrastructure component.
 
 **Consequences:**
 - No additional broker to operate.
@@ -53,7 +55,8 @@ True microservice databases (one DB per service) add operational complexity. A s
 Use one PostgreSQL instance but enforce ownership: each service module owns its tables and is the only code that queries them directly.
 
 **Rationale:**
-Keeps deployment simple while preserving logical boundaries. The `messages` table is never queried outside the Messaging Service — this is enforced by code review and module structure, not by network isolation.
+- Keeps deployment simple while preserving logical boundaries.
+- The `messages` table is never queried outside the Messaging Service — enforced by code review and module structure, not by network isolation.
 
 **Consequences:**
 - Simple deployment and transactions.
@@ -73,7 +76,7 @@ Feed fan-out and notification delivery could be done synchronously in the POST /
 The POST /posts handler returns 201 as soon as the post is persisted and the event is enqueued. Fan-out and notifications are handled by background consumers.
 
 **Rationale:**
-Satisfies NF-02 (notification < 5 s) and NF-03 (system operational if notification service is down) without blocking the user.
+- Satisfies NF-02 (notification < 5 s) and NF-03 (system operational if notification service is down) without blocking the user.
 
 **Consequences:**
 - Feed and notifications are eventually consistent (acceptable for a social network).
