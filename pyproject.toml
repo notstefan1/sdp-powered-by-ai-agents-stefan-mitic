@@ -1,3 +1,4 @@
+# Tool configuration for black, isort, ruff, bandit, and detect-secrets
 [project]
 name = "sdp-course"
 version = "0.1.0"

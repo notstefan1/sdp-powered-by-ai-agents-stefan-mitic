@@ -1,3 +1,4 @@
+# Pre-commit hook configuration — black, isort, ruff, bandit, detect-secrets, commit-msg, plantuml
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
