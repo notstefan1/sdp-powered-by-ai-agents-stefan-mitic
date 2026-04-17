@@ -1,0 +1,27 @@
+@startuml seq-02-read-feed
+title Runtime: User reads their feed
+
+actor User
+participant "API Gateway" as API
+participant "Feed Service" as Feed
+participant "Redis Feed Cache" as Cache
+participant "PostgreSQL" as PG
+
+User -> API : GET /feed
+API -> Feed : get_feed(user_id, page)
+Feed -> Cache : ZREVRANGE feed:{user_id} 0 19
+
+alt Cache hit
+    Cache --> Feed : [post_ids]
+    Feed -> PG : SELECT * FROM posts WHERE id IN (post_ids)
+    PG --> Feed : post rows
+else Cache miss
+    Feed -> PG : SELECT posts WHERE author_id IN\n(SELECT followee_id FROM follows WHERE follower_id = user_id)\nORDER BY created_at DESC LIMIT 20
+    PG --> Feed : post rows
+    Feed -> Cache : ZADD feed:{user_id} (backfill)
+end
+
+Feed --> API : feed items
+API --> User : 200 OK [posts]
+
+@enduml

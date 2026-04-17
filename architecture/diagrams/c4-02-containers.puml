@@ -1,0 +1,45 @@
+@startuml c4-02-containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram — Lightweight Social Network
+
+Person(user, "User", "Browser or mobile client")
+
+System_Boundary(sn, "Social Network") {
+    Container(api, "API Gateway", "FastAPI", "Single HTTP entry point; routes to internal service modules")
+    Container(user_svc, "User Service", "Python module", "Registration, auth, social graph (follows)")
+    Container(post_svc, "Post Service", "Python module", "Publish posts, detect @mentions, generate permalinks")
+    Container(feed_svc, "Feed Service", "Python module", "Fan-out on write; serves aggregated feed from Redis")
+    Container(notif_svc, "Notification Service", "Python module / async consumer", "Consumes events, stores in-app notifications")
+    Container(msg_svc, "Messaging Service", "Python module", "Private DM send/receive, isolated from public feed")
+
+    ContainerDb(pg, "PostgreSQL", "PostgreSQL 16", "Users, posts, follows, notifications, direct messages")
+    ContainerDb(redis, "Redis", "Redis 7", "Feed cache (sorted sets), event streams (Redis Streams)")
+}
+
+System_Ext(push, "Push / Email Provider", "External notification delivery")
+
+Rel(user, api, "HTTPS / REST")
+Rel(api, user_svc, "calls")
+Rel(api, post_svc, "calls")
+Rel(api, feed_svc, "calls")
+Rel(api, msg_svc, "calls")
+
+Rel(post_svc, pg, "writes posts", "SQL")
+Rel(post_svc, redis, "publishes post.created event", "Redis Streams")
+
+Rel(feed_svc, redis, "reads/writes feed", "Redis sorted set")
+Rel(feed_svc, pg, "fallback read", "SQL")
+
+Rel(user_svc, pg, "reads/writes users & follows", "SQL")
+Rel(user_svc, redis, "publishes follow.created event", "Redis Streams")
+
+Rel(notif_svc, redis, "consumes events", "Redis Streams")
+Rel(notif_svc, pg, "writes notifications", "SQL")
+Rel(notif_svc, push, "dispatches push/email", "HTTPS")
+
+Rel(msg_svc, pg, "reads/writes DMs", "SQL")
+
+@enduml

@@ -1,0 +1,26 @@
+@startuml c4-03-components-post
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram — Post Service
+
+Container_Boundary(post_svc, "Post Service") {
+    Component(router, "Post Router", "FastAPI router", "HTTP endpoints: POST /posts, GET /posts/{id}")
+    Component(publisher, "Post Publisher", "Python class", "Validates content, persists post, extracts @mentions")
+    Component(mention_parser, "Mention Parser", "Python function", "Extracts @username tokens from post text")
+    Component(event_emitter, "Event Emitter", "Python class", "Publishes post.created event to Redis Streams")
+    Component(post_repo, "Post Repository", "Python class", "SQL queries against posts table")
+}
+
+ContainerDb(pg, "PostgreSQL", "PostgreSQL 16", "posts table")
+ContainerDb(redis, "Redis", "Redis 7", "Redis Streams")
+
+Rel(router, publisher, "calls")
+Rel(publisher, mention_parser, "calls")
+Rel(publisher, post_repo, "persists via")
+Rel(publisher, event_emitter, "emits post.created")
+Rel(post_repo, pg, "SQL")
+Rel(event_emitter, redis, "XADD post.created")
+
+@enduml

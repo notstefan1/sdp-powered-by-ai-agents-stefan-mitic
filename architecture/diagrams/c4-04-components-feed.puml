@@ -1,0 +1,24 @@
+@startuml c4-04-components-feed
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram — Feed Service
+
+Container_Boundary(feed_svc, "Feed Service") {
+    Component(feed_router, "Feed Router", "FastAPI router", "GET /feed — returns paginated feed for authenticated user")
+    Component(feed_reader, "Feed Reader", "Python class", "Reads feed from Redis; falls back to SQL if cache miss")
+    Component(feed_updater, "Feed Updater", "Async consumer", "Consumes post.created events; fans out to follower feeds")
+    Component(feed_repo, "Feed Repository", "Python class", "SQL fallback: SELECT posts WHERE author IN (followees)")
+}
+
+ContainerDb(redis, "Redis", "Redis 7", "Sorted sets: feed:{user_id} → post_ids by timestamp")
+ContainerDb(pg, "PostgreSQL", "PostgreSQL 16", "posts, follows tables")
+
+Rel(feed_router, feed_reader, "calls")
+Rel(feed_reader, redis, "ZREVRANGE feed:{uid}")
+Rel(feed_reader, feed_repo, "fallback on cache miss")
+Rel(feed_repo, pg, "SQL")
+Rel(feed_updater, redis, "XREAD post.created stream\nZADD feed:{follower_id}")
+
+@enduml
