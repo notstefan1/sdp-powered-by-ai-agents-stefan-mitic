@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Validates conventional commit format: #<issue> <type>(<scope>): <description>
+# Required by .pre-commit-config.yaml — runs at commit-msg stage
 
 MSG_FILE="$1"
 MSG=$(head -1 "$MSG_FILE")
