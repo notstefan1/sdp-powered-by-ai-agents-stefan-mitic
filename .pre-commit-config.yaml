@@ -64,3 +64,12 @@ repos:
         language: system
         files: '\.puml$'
         pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: docker-test
+        name: Docker build and test
+        entry: scripts/hooks/docker-test.sh
+        language: system
+        files: '^(src/|tests/|Dockerfile|requirements\.txt)'
+        pass_filenames: false
