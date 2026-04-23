@@ -36,8 +36,8 @@ def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
     assert repo.conversation("u-bob", "u-ghost") == []
 
 
-def test_msg_be_001_1_s1__dm_created_event_emitted():
-    # GIVEN - Story: MSG-BE-001.1, Scenario: S1 (async notification)
+def test_msg_infra_001_3_s1__dm_created_event_emitted():
+    # GIVEN - Story: MSG-INFRA-001.3, Scenario: S1 - dm.created event dispatched async
     from src.post import EventEmitter
 
     emitter = EventEmitter()

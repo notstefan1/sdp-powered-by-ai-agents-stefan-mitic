@@ -1,18 +1,69 @@
-"""Tests for minimal HTTP follow endpoint behavior."""
+"""Tests for USER-BE-001.1, USER-BE-001.2 HTTP layer."""
 
-from src.app import App
+from fastapi.testclient import TestClient
+
+from src.api import create_app
+
+_PASS = "pass"  # pragma: allowlist secret
 
 
-def test_follow_endpoint_creates_relationship_for_authenticated_user():
-    # GIVEN
-    app = App()
+def _setup(client):
+    client.post("/register", json={"username": "alice", "password": _PASS})
+    bob = client.post("/register", json={"username": "bob", "password": _PASS}).json()
+    alice_token = client.post(
+        "/auth/login", json={"username": "alice", "password": _PASS}
+    ).json()["token"]
+    return bob["user_id"], alice_token
+
+
+def test_user_be_001_1_s1__follow_relationship_created_via_http():
+    # GIVEN - Story: USER-BE-001.1, Scenario: S1
+    client = TestClient(create_app())
+    bob_id, alice_token = _setup(client)
 
     # WHEN
-    status_code, body = app.handle_request(
-        "POST", "/users/u-alice/follow", auth_user_id="u-bob"
+    resp = client.post(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {alice_token}"},
     )
 
     # THEN
-    assert status_code == 201
-    assert body == {"status": "ok"}
-    assert app.follow_repo.exists("u-bob", "u-alice")
+    assert resp.status_code == 201
+
+
+def test_user_be_001_1_s2__duplicate_follow_returns_conflict_via_http():
+    # GIVEN - Story: USER-BE-001.1, Scenario: S2
+    client = TestClient(create_app())
+    bob_id, alice_token = _setup(client)
+    client.post(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+
+    # WHEN - follow again
+    resp = client.post(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+
+    # THEN
+    assert resp.status_code == 409
+
+
+def test_user_be_001_2_s1__unfollow_removes_relationship_via_http():
+    # GIVEN - Story: USER-BE-001.2, Scenario: S1
+    client = TestClient(create_app())
+    bob_id, alice_token = _setup(client)
+    client.post(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+
+    # WHEN
+    resp = client.delete(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {alice_token}"},
+    )
+
+    # THEN
+    assert resp.status_code == 204

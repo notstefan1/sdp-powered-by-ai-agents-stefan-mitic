@@ -1,9 +1,12 @@
-"""Tests for HTTP API endpoints."""
+"""HTTP API endpoint tests - story-level scenarios."""
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.api import create_app
+
+_PASS = "pass"  # pragma: allowlist secret
+_SECRET = "secret123"  # pragma: allowlist secret
 
 
 @pytest.fixture()
@@ -12,113 +15,145 @@ def client():
 
 
 def _register_and_login(client, username="alice"):
-    client.post(
-        "/register",
-        json={"username": username, "password": "pass"},  # pragma: allowlist secret
-    )
-    resp = client.post(
-        "/auth/login",
-        json={"username": username, "password": "pass"},  # pragma: allowlist secret
-    )
-    return resp.json()["token"]
+    client.post("/register", json={"username": username, "password": _PASS})
+    return client.post(
+        "/auth/login", json={"username": username, "password": _PASS}
+    ).json()["token"]
 
 
-def test_post_register_creates_user(client):
-    resp = client.post(
-        "/register",
-        json={"username": "alice", "password": "secret123"},  # pragma: allowlist secret
-    )
-    assert resp.status_code == 201
-    assert resp.json()["username"] == "alice"
-
-
-def test_post_login_returns_token(client):
+def test_auth_story_001_s1__successful_login_returns_token(client):
+    # GIVEN - Story: AUTH-STORY-001, Scenario: S1
     client.post(
         "/register",
         json={"username": "alice", "password": "secret123"},  # pragma: allowlist secret
     )
+
+    # WHEN
     resp = client.post(
         "/auth/login",
         json={"username": "alice", "password": "secret123"},  # pragma: allowlist secret
     )
+
+    # THEN
     assert resp.status_code == 200
     assert "token" in resp.json()
 
 
-def test_post_posts_creates_post(client):
+def test_auth_story_001_s4__protected_endpoint_rejects_missing_token(client):
+    # GIVEN - Story: AUTH-STORY-001, Scenario: S4
+    # WHEN - no Authorization header
+    resp = client.get("/feed")
+
+    # THEN - 401 or 403 depending on FastAPI version (no credentials = unauthorized)
+    assert resp.status_code in (401, 403)
+
+
+def test_user_story_002_s1__successful_registration(client):
+    # GIVEN - Story: USER-STORY-002, Scenario: S1
+    # WHEN
+    resp = client.post(
+        "/register",
+        json={"username": "alice", "password": "secret123"},  # pragma: allowlist secret
+    )
+
+    # THEN
+    assert resp.status_code == 201
+    assert resp.json()["username"] == "alice"
+    assert "user_id" in resp.json()
+
+
+def test_user_story_002_s2__duplicate_username_rejected(client):
+    # GIVEN - Story: USER-STORY-002, Scenario: S2
+    client.post("/register", json={"username": "alice", "password": _PASS})
+
+    # WHEN
+    resp = client.post(
+        "/register",
+        json={"username": "alice", "password": "pass"},  # pragma: allowlist secret
+    )
+
+    # THEN
+    assert resp.status_code == 409
+
+
+def test_post_story_001_s1__valid_post_persisted_and_201_returned(client):
+    # GIVEN - Story: POST-STORY-001, Scenario: S1
     token = _register_and_login(client)
+
+    # WHEN
     resp = client.post(
         "/posts",
         json={"text": "Hello world"},
         headers={"Authorization": f"Bearer {token}"},
     )
+
+    # THEN
     assert resp.status_code == 201
     assert "post_id" in resp.json()
 
 
-def test_get_feed_returns_posts(client):
+def test_feed_story_001_s1__feed_returned_with_own_posts(client):
+    # GIVEN - Story: FEED-STORY-001, Scenario: S1
     token = _register_and_login(client)
     client.post(
         "/posts",
         json={"text": "Hello feed"},
         headers={"Authorization": f"Bearer {token}"},
     )
+
+    # WHEN
     resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
+
+    # THEN
     assert resp.status_code == 200
-    assert "posts" in resp.json()
+    assert any(p["text"] == "Hello feed" for p in resp.json()["posts"])
 
 
-def test_get_feed_returns_own_posts(client):
-    # GIVEN - a user posts something
-    token = _register_and_login(client)
-    client.post(
-        "/posts",
-        json={"text": "My own post"},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-
-    # WHEN - they view their feed
-    resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
-
-    # THEN - their own post appears with text
-    posts = resp.json()["posts"]
-    assert len(posts) > 0
-    assert posts[0]["text"] == "My own post"
-
-
-def test_post_messages_sends_dm(client):
+def test_msg_story_001_s1__dm_sent_and_message_id_returned(client):
+    # GIVEN - Story: MSG-STORY-001, Scenario: S1
     token_alice = _register_and_login(client, "alice")
     bob_id = client.post(
         "/register",
         json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
     ).json()["user_id"]
 
+    # WHEN
     resp = client.post(
         "/messages",
         json={"recipient_id": bob_id, "text": "Hey Bob"},
         headers={"Authorization": f"Bearer {token_alice}"},
     )
+
+    # THEN
     assert resp.status_code == 201
     assert "message_id" in resp.json()
 
 
-def test_get_root_serves_html(client):
+def test_infra_fe_001_1_s1__health_endpoint_returns_ok(client):
+    # GIVEN - Story: INFRA-FE-001.1, Scenario: S1
+    # WHEN
+    resp = client.get("/health")
+
+    # THEN
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in ("ok", "degraded")
+    assert "postgres" in body
+    assert "redis" in body
+
+
+def test_infra_fe_001_1_s1__root_serves_html(client):
+    # GIVEN - Story: INFRA-FE-001.1 - frontend served from /
+    # WHEN
     resp = client.get("/")
+
+    # THEN
     assert resp.status_code == 200
     assert "text/html" in resp.headers["content-type"]
 
 
-def test_health_returns_status(client):
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "postgres" in body
-    assert "redis" in body
-    assert body["status"] in ("ok", "degraded")
-
-
-def test_get_post_by_id(client):
-    # GIVEN - Story: POST-BE-002.1
+def test_post_story_002_s1__permalink_returns_post(client):
+    # GIVEN - Story: POST-STORY-002, Scenario: S1
     token = _register_and_login(client)
     post_id = client.post(
         "/posts",
@@ -134,8 +169,8 @@ def test_get_post_by_id(client):
     assert resp.json()["text"] == "Permalink test"
 
 
-def test_get_post_by_id_not_found(client):
-    # GIVEN - Story: POST-STORY-002-S2
+def test_post_story_002_s2__permalink_404_for_missing_post(client):
+    # GIVEN - Story: POST-STORY-002, Scenario: S2
     token = _register_and_login(client)
 
     # WHEN
@@ -147,8 +182,46 @@ def test_get_post_by_id_not_found(client):
     assert resp.status_code == 404
 
 
-def test_unfollow_removes_posts_from_feed(client):
-    # GIVEN - Story: USER-STORY-001-S2
+def test_user_story_003_s1__profile_shows_user_info_and_counts(client):
+    # GIVEN - Story: USER-STORY-003, Scenario: S1 & S2
+    token_alice = _register_and_login(client, "alice")
+    bob_id = client.post(
+        "/register",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    ).json()["user_id"]
+    client.post(
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {token_alice}"},
+    )
+
+    # WHEN
+    resp = client.get(
+        f"/users/{bob_id}", headers={"Authorization": f"Bearer {token_alice}"}
+    )
+
+    # THEN
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["username"] == "bob"
+    assert body["follower_count"] == 1
+    assert body["is_following"] is True
+
+
+def test_user_story_003_s3__unknown_username_returns_404(client):
+    # GIVEN - Story: USER-STORY-003, Scenario: S3
+    token = _register_and_login(client)
+
+    # WHEN
+    resp = client.get(
+        "/users/nonexistent-id", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    # THEN
+    assert resp.status_code == 404
+
+
+def test_feed_story_001_s2__unfollow_removes_posts_from_feed(client):
+    # GIVEN - Story: USER-STORY-001-S2 / FEED-STORY-001
     token_alice = _register_and_login(client, "alice")
     bob_id = client.post(
         "/register",
@@ -158,50 +231,54 @@ def test_unfollow_removes_posts_from_feed(client):
         "/auth/login",
         json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
     ).json()["token"]
-    # alice follows bob
     client.post(
-        f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token_alice}"}
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {token_alice}"},
     )
-    # bob posts
     client.post(
         "/posts",
         json={"text": "Bob post"},
         headers={"Authorization": f"Bearer {bob_token}"},
     )
-    # alice sees it
     feed_before = client.get(
         "/feed", headers={"Authorization": f"Bearer {token_alice}"}
     ).json()["posts"]
     assert any(p["text"] == "Bob post" for p in feed_before)
 
-    # WHEN - alice unfollows bob
+    # WHEN
     client.delete(
-        f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token_alice}"}
+        f"/users/{bob_id}/follow",
+        headers={"Authorization": f"Bearer {token_alice}"},
     )
 
-    # THEN - bob's post is gone from alice's feed
+    # THEN
     feed_after = client.get(
         "/feed", headers={"Authorization": f"Bearer {token_alice}"}
     ).json()["posts"]
     assert not any(p["text"] == "Bob post" for p in feed_after)
 
 
-def test_get_user_profile(client):
-    # GIVEN - Story: USER-BE-003.1, USER-BE-003.3
-    token = _register_and_login(client, "alice")
-    bob_id = client.post(
-        "/register",
-        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
-    ).json()["user_id"]
-    # alice follows bob
-    client.post(f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token}"})
+@pytest.mark.skipif(
+    __import__("os").environ.get("DATABASE_URL") is not None,
+    reason="Only meaningful without a real DB running",
+)
+def test_infra_be_001_1_s2__health_reports_degraded_when_db_unreachable(client):
+    # GIVEN - Story: INFRA-BE-001.1, Scenario: S2
+    import os
 
-    # WHEN
-    resp = client.get(f"/users/{bob_id}", headers={"Authorization": f"Bearer {token}"})
+    original = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = (
+        "postgresql://bad:bad@localhost:1/bad"  # pragma: allowlist secret
+    )
+    try:
+        c = TestClient(create_app())
+        resp = c.get("/health")
+    finally:
+        if original is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = original
 
-    # THEN
     assert resp.status_code == 200
-    body = resp.json()
-    assert body["username"] == "bob"
-    assert body["follower_count"] == 1
-    assert body["is_following"] is True
+    assert resp.json()["postgres"] == "error"
+    assert resp.json()["status"] == "degraded"

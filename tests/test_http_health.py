@@ -1,4 +1,4 @@
-"""Tests for minimal HTTP health endpoint behavior."""
+"""Tests for INFRA-BE-001.1 - health endpoint."""
 
 import os
 
@@ -6,28 +6,26 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api import create_app
-from src.app import handle_request
 
 
-def test_health_endpoint_returns_200_with_dependency_statuses():
-    # GIVEN
-    method = "GET"
-    path = "/health"
+def test_infra_be_001_1_s1__all_dependencies_healthy():
+    # GIVEN - Story: INFRA-BE-001.1, Scenario: S1
+    client = TestClient(create_app())
 
     # WHEN
-    status_code, body = handle_request(method, path)
+    resp = client.get("/health")
 
     # THEN
-    assert status_code == 200
-    assert body == {"status": "ok", "postgres": "ok", "redis": "ok"}
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok", "postgres": "ok", "redis": "ok"}
 
 
 @pytest.mark.skipif(
     bool(os.environ.get("DATABASE_URL")),
     reason="Only meaningful without a real DB running",
 )
-def test_health_reports_degraded_when_db_unreachable():
-    # GIVEN - Story: INFRA-BE-001.1, Scenario: S2
+def test_infra_be_001_1_s2__degraded_dependency_reported():
+    # GIVEN - Story: INFRA-BE-001.1, Scenario: S2 - Redis unreachable
     original = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = (
         "postgresql://bad:bad@localhost:1/bad"  # pragma: allowlist secret
