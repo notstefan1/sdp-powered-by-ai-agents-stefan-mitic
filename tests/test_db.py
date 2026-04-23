@@ -4,14 +4,15 @@ import os
 
 import pytest
 
+from src.db import get_connection, run_migrations
+
 DATABASE_URL = os.environ.get("DATABASE_URL")
+skip_no_db = pytest.mark.skipif(not DATABASE_URL, reason="DATABASE_URL not set")
 
 
-@pytest.mark.skipif(not DATABASE_URL, reason="DATABASE_URL not set")
+@skip_no_db
 def test_infra_be_001_2_s1__all_tables_exist_after_migration():
     # GIVEN - Story: INFRA-BE-001.2, Scenario: S1
-    from src.db import get_connection, run_migrations
-
     run_migrations()
 
     # WHEN
@@ -26,11 +27,9 @@ def test_infra_be_001_2_s1__all_tables_exist_after_migration():
     assert {"users", "follows", "posts", "notifications", "messages"} <= tables
 
 
-@pytest.mark.skipif(not DATABASE_URL, reason="DATABASE_URL not set")
+@skip_no_db
 def test_infra_be_001_2_s2__migrations_are_idempotent():
     # GIVEN - Story: INFRA-BE-001.2, Scenario: S2
-    from src.db import run_migrations
-
     # WHEN - run twice, should not raise
     run_migrations()
     run_migrations()
