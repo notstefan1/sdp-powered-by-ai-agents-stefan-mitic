@@ -48,3 +48,14 @@ def test_post_be_001_2_s1__single_mention_resolved():
 
     # THEN
     assert mentioned == ["u-123"]
+
+
+def test_post_be_001_2_s2__unknown_mention_ignored():
+    # GIVEN — Story: POST-BE-001.2, Scenario: S2
+    parser = MentionParser({})
+
+    # WHEN
+    mentioned = parser.parse("Hello @nobody")
+
+    # THEN
+    assert mentioned == []
