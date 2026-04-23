@@ -53,7 +53,7 @@ def create_app() -> FastAPI:
     def register(body: UserBody):
         try:
             result = user_service.register(body.username, "")
-            user_store.create(body.username, body.password)
+            user_store.create_with_id(result["user_id"], body.username, body.password)
             return result
         except ValueError as e:
             raise HTTPException(status_code=409, detail=str(e)) from e

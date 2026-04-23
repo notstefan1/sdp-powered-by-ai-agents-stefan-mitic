@@ -82,3 +82,29 @@ def test_get_feed_returns_posts():
     # THEN
     assert resp.status_code == 200
     assert "posts" in resp.json()
+
+
+def test_post_messages_sends_dm():
+    # GIVEN - Story: MSG-BE-001.1, HTTP layer
+    client = TestClient(create_app())
+    token_alice = _register_and_login(client)
+    # register bob so alice can DM him
+    client.post(
+        "/register",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    )
+    bob_id = client.post(
+        "/auth/login",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    ).json()["user_id"]
+
+    # WHEN
+    resp = client.post(
+        "/messages",
+        json={"recipient_id": bob_id, "text": "Hey Bob"},
+        headers={"Authorization": f"Bearer {token_alice}"},
+    )
+
+    # THEN
+    assert resp.status_code == 201
+    assert "message_id" in resp.json()

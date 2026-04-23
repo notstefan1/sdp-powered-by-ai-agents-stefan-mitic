@@ -19,6 +19,10 @@ class UserStore:
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
         return user_id
 
+    def create_with_id(self, user_id: str, username: str, password: str) -> None:
+        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
+
     def get(self, username: str):
         return self._users.get(username)
 
