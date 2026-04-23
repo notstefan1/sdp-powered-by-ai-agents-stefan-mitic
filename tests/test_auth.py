@@ -31,3 +31,15 @@ def test_auth_be_001_1_s2__invalid_credentials_raise_error():
     # WHEN / THEN
     with pytest.raises(ValueError, match="invalid_credentials"):
         service.login("alice", "wrongpassword")
+
+
+def test_auth_be_001_2_s1__valid_token_decodes_user_id():
+    # GIVEN - Story: AUTH-BE-001.2, Scenario: S1
+    service, _ = _service()
+    result = service.login("alice", "secret123")
+
+    # WHEN
+    user_id = service.decode_token(result["token"])
+
+    # THEN
+    assert user_id == result["user_id"]

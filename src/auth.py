@@ -38,3 +38,10 @@ class AuthService:
             {"sub": user["user_id"], "username": username}, _SECRET, algorithm="HS256"
         )
         return {"token": token, "user_id": user["user_id"], "username": username}
+
+    def decode_token(self, token: str) -> str:
+        try:
+            payload = jwt.decode(token, _SECRET, algorithms=["HS256"])
+            return payload["sub"]
+        except Exception as err:
+            raise ValueError("invalid_token") from err
