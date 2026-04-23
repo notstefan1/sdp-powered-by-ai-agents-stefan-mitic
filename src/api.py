@@ -1,14 +1,17 @@
 """FastAPI application - HTTP layer wiring all services."""
 
+import os
 import time
 from pathlib import Path
 
+import redis as redis_lib
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from src.auth import AuthService, UserStore
+from src.db import get_connection
 from src.feed import FeedCache, FeedService
 from src.messaging import MessageRepository, MessagingService
 from src.notification import NotificationRepository, NotificationService
@@ -132,7 +135,26 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "postgres": "ok", "redis": "ok"}
+        pg_status = "ok"
+        redis_status = "ok"
+
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url:
+            try:
+                with get_connection() as conn:
+                    conn.execute("SELECT 1")
+            except Exception:
+                pg_status = "error"
+
+        redis_url = os.environ.get("REDIS_URL")
+        if redis_url:
+            try:
+                redis_lib.from_url(redis_url).ping()
+            except Exception:
+                redis_status = "error"
+
+        overall = "ok" if pg_status == "ok" and redis_status == "ok" else "degraded"
+        return {"status": overall, "postgres": pg_status, "redis": redis_status}
 
     @app.get("/", response_class=FileResponse)
     def index():

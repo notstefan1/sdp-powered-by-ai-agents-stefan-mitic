@@ -120,3 +120,41 @@ def test_get_root_serves_html():
     # THEN
     assert resp.status_code == 200
     assert "text/html" in resp.headers["content-type"]
+
+
+def test_health_reports_postgres_and_redis_status():
+    # GIVEN - Story: INFRA-BE-001.1, Scenario: S1
+    client = TestClient(create_app())
+
+    # WHEN
+    resp = client.get("/health")
+
+    # THEN
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "postgres" in body
+    assert "redis" in body
+    assert body["status"] in ("ok", "degraded")
+
+
+def test_health_reports_degraded_when_db_unreachable():
+    # GIVEN - Story: INFRA-BE-001.1, Scenario: S2 - bad DATABASE_URL
+    import os
+
+    original = os.environ.get("DATABASE_URL")
+    os.environ["DATABASE_URL"] = (
+        "postgresql://bad:bad@localhost:1/bad"  # pragma: allowlist secret
+    )
+
+    try:
+        client = TestClient(create_app())
+        resp = client.get("/health")
+    finally:
+        if original is None:
+            os.environ.pop("DATABASE_URL", None)
+        else:
+            os.environ["DATABASE_URL"] = original
+
+    assert resp.status_code == 200
+    assert resp.json()["postgres"] == "error"
+    assert resp.json()["status"] == "degraded"
