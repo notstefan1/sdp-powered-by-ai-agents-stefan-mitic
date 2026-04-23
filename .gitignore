@@ -8,3 +8,6 @@ docs/_build/
 
 .ruff_cache
 .pytest_cache
+
+# Local env - never commit secrets
+.env
