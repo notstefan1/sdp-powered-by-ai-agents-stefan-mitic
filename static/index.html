@@ -241,6 +241,11 @@
     document.getElementById("tab-register").style.display = tab === "register" ? "" : "none";
     document.querySelectorAll(".tab").forEach((t, i) =>
       t.classList.toggle("active", (i === 0) === (tab === "login")));
+    // clear errors and fields when switching tabs
+    ["login-error", "reg-error", "reg-success"].forEach(id =>
+      document.getElementById(id).textContent = "");
+    ["login-username", "login-password", "reg-username", "reg-password"].forEach(id =>
+      document.getElementById(id).value = "");
   }
 
   async function register() {
@@ -272,7 +277,23 @@
   }
 
   function logout() {
-    localStorage.clear(); token = null; myUserId = null;
+    localStorage.clear(); token = null; myUserId = null; dmRecipientId = null;
+    // reset all page content so next user starts fresh
+    document.getElementById("feed-list").innerHTML = '<p class="empty">Loading…</p>';
+    document.getElementById("people-list").innerHTML = '<p class="empty">Search for users to follow.</p>';
+    document.getElementById("notif-list").innerHTML = '<p class="empty">No notifications.</p>';
+    document.getElementById("dm-messages").innerHTML = "";
+    document.getElementById("dm-thread-card").style.display = "none";
+    document.getElementById("dm-search").value = "";
+    document.getElementById("dm-search-results").innerHTML = "";
+    document.getElementById("search-q").value = "";
+    document.getElementById("post-text").value = "";
+    document.getElementById("post-error").textContent = "";
+    document.getElementById("char-count").textContent = "";
+    document.getElementById("notif-badge").style.display = "none";
+    // go back to login tab
+    showAuthTab("login");
+    showPage("feed");
     document.getElementById("auth-section").style.display = "block";
     document.getElementById("app").style.display = "none";
   }
@@ -281,6 +302,8 @@
     document.getElementById("auth-section").style.display = "none";
     document.getElementById("app").style.display = "block";
     document.getElementById("whoami").textContent = "@" + localStorage.getItem("username");
+    // reset to feed tab on every login
+    showPage("feed");
     loadFeed();
     pollNotifs();
   }
@@ -291,6 +314,8 @@
     document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
     document.getElementById("page-" + name).classList.add("active");
     document.getElementById("tab-" + name).classList.add("active");
+    // clear stale errors on every tab switch
+    document.querySelectorAll(".error, .success").forEach(el => el.textContent = "");
     if (name === "notifs") { loadNotifs(); clearNotifBadge(); }
     if (name === "feed") loadFeed();
   }
