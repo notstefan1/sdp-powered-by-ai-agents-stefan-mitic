@@ -77,3 +77,25 @@ def test_follow_persists_to_db():
     with get_connection() as conn, conn.cursor() as cur:
         cur.execute("SELECT 1 FROM follows WHERE followee_id = %s", (alice["user_id"],))
         assert cur.fetchone() is not None
+
+
+@skip_no_db
+def test_post_persists_to_db():
+    # GIVEN - Story: POST-BE-001.1 with real DB
+    client = TestClient(create_app())
+    _register(client, "alice")
+    token = _login_token(client, "alice")
+
+    # WHEN
+    resp = client.post(
+        "/posts",
+        json={"text": "Hello world"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # THEN
+    assert resp.status_code == 201
+    post_id = resp.json()["post_id"]
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT text FROM posts WHERE post_id = %s", (post_id,))
+        assert cur.fetchone()[0] == "Hello world"

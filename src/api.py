@@ -15,7 +15,13 @@ from src.db import get_connection, run_migrations
 from src.feed import FeedCache, FeedService
 from src.messaging import MessageRepository, MessagingService
 from src.notification import NotificationRepository, NotificationService
-from src.post import EventEmitter, MentionParser, PostRepository, PostService
+from src.post import (
+    DbPostRepository,
+    EventEmitter,
+    MentionParser,
+    PostRepository,
+    PostService,
+)
 from src.user import DbFollowRepository, FollowRepository, UserService
 
 _STATIC = Path(__file__).parent.parent / "static"
@@ -62,16 +68,18 @@ def create_app() -> FastAPI:
             run_migrations()
             user_store = DbUserStore()
             follow_repo = DbFollowRepository()
+            post_repo = DbPostRepository()
         except Exception:
             user_store = UserStore()
             follow_repo = FollowRepository()
+            post_repo = PostRepository()
     else:
         user_store = UserStore()
         follow_repo = FollowRepository()
+        post_repo = PostRepository()
 
     user_service = UserService(follow_repo, known_users=set())
     auth_service = AuthService(user_store)
-    post_repo = PostRepository()
     emitter = EventEmitter()
     post_service = PostService(post_repo, emitter, MentionParser({}))
     feed_service = FeedService(FeedCache(), follow_repo, post_repo)

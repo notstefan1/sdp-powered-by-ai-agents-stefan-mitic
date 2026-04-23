@@ -24,6 +24,43 @@ class PostRepository:
         return self._store.get(post_id)
 
 
+class DbPostRepository:
+    def save(self, post: Post) -> None:
+        from src.db import get_connection
+
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO posts (post_id, author_id, text) VALUES (%s, %s, %s)",
+                (post.post_id, post.author_id, post.text),
+            )
+            conn.commit()
+
+    def get(self, post_id: str) -> Post | None:
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT post_id, author_id, text FROM posts WHERE post_id = %s",
+                (post_id,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return None
+        return Post(post_id=row[0], author_id=row[1], text=row[2])
+
+    @property
+    def _store(self):
+        """Compatibility shim for FeedService SQL fallback."""
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT post_id, author_id, text FROM posts")
+            return {
+                r[0]: Post(post_id=r[0], author_id=r[1], text=r[2])
+                for r in cur.fetchall()
+            }
+
+
 class EventEmitter:
     def __init__(self):
         self.events: list[dict] = []
