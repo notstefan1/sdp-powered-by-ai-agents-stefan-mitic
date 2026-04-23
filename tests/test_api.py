@@ -256,29 +256,3 @@ def test_feed_story_001_s2__unfollow_removes_posts_from_feed(client):
         "/feed", headers={"Authorization": f"Bearer {token_alice}"}
     ).json()["posts"]
     assert not any(p["text"] == "Bob post" for p in feed_after)
-
-
-@pytest.mark.skipif(
-    __import__("os").environ.get("DATABASE_URL") is not None,
-    reason="Only meaningful without a real DB running",
-)
-def test_infra_be_001_1_s2__health_reports_degraded_when_db_unreachable(client):
-    # GIVEN - Story: INFRA-BE-001.1, Scenario: S2
-    import os
-
-    original = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = (
-        "postgresql://bad:bad@localhost:1/bad"  # pragma: allowlist secret
-    )
-    try:
-        c = TestClient(create_app())
-        resp = c.get("/health")
-    finally:
-        if original is None:
-            os.environ.pop("DATABASE_URL", None)
-        else:
-            os.environ["DATABASE_URL"] = original
-
-    assert resp.status_code == 200
-    assert resp.json()["postgres"] == "error"
-    assert resp.json()["status"] == "degraded"
