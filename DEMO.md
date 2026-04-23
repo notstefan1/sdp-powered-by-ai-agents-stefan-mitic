@@ -4,6 +4,26 @@ A social network built with FastAPI, PostgreSQL, Redis, and Docker.
 
 ---
 
+## Story Coverage
+
+| Story ID | Title | Demo Step |
+|---|---|---|
+| AUTH-STORY-001 | Log in and maintain a session | Step 1 |
+| USER-STORY-002 | Register / manage account | Step 1 |
+| USER-STORY-001 | Follow / unfollow a user | Step 3 |
+| USER-STORY-003 | View user profile | Step 6 |
+| POST-STORY-001 | Publish a post | Step 2 |
+| POST-STORY-002 | Share post permalink | Step 7 |
+| FEED-STORY-001 | Read aggregated feed | Step 2 |
+| FEED-STORY-002 | Feed cache miss / SQL fallback | Step 8 |
+| NOTIF-STORY-001 | Receive @mention notification | Step 4 |
+| NOTIF-STORY-002 | Notification delivery on service recovery | Step 4 |
+| NOTIF-STORY-003 | Mark notification as read | Step 4 |
+| MSG-STORY-001 | Send and receive a direct message | Step 5 |
+| INFRA-STORY-001 | Local Docker Compose stack starts end-to-end | Step 9 |
+
+---
+
 ## Prerequisites
 
 - Docker and Docker Compose installed
@@ -52,6 +72,7 @@ Navigate to **http://localhost:8000** in your browser.
 ## Demo Flow
 
 ### Step 1 - Authentication
+*Stories: AUTH-STORY-001, AUTH-BE-001.1, AUTH-BE-001.2*
 
 - Show the login/register tabs
 - Register a **new account** (e.g. `dave` / `password123`) - show it redirects to login on success
@@ -64,6 +85,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 2 - Feed & Publishing
+*Stories: POST-STORY-001, POST-BE-001.1, POST-BE-001.2, FEED-STORY-001, FEED-BE-001.1*
 
 - As `alice`, show the feed - posts from bob and carol appear (she follows both)
 - Type a post in the compose box - show the character counter
@@ -75,6 +97,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 3 - Follow / Unfollow
+*Stories: USER-STORY-001, USER-BE-001.1, USER-BE-001.2, FEED-BE-001.2*
 
 - Go to **People** tab
 - Search for `dave` (the account you just created)
@@ -89,6 +112,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 4 - @Mention Notifications
+*Stories: NOTIF-STORY-001, NOTIF-BE-001.1, NOTIF-STORY-002, NOTIF-INFRA-001.3*
 
 - As `alice`, publish a post containing `@dave`
 - Switch to the `dave` tab
@@ -101,6 +125,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 5 - Direct Messages
+*Stories: MSG-STORY-001, MSG-BE-001.1, MSG-BE-001.2, MSG-STORY-001-S3 (data isolation)*
 
 - As `alice`, go to **Messages** tab
 - Search for `bob` - click **Message**
@@ -113,6 +138,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 6 - Profile Page
+*Stories: USER-STORY-003, USER-BE-003.1, USER-BE-003.2, USER-BE-003.3*
 
 - Click **Profile** in the nav - shows your own posts and follower/following counts
 - In the feed, click any **@username** - opens their profile
@@ -121,6 +147,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 7 - Post Permalink
+*Stories: POST-STORY-002, POST-BE-002.1*
 
 - In the feed, click **permalink** on any post
 - Opens in a new tab showing just that post (shareable URL by post ID)
@@ -128,6 +155,7 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 8 - Persistence Across Restarts
+*Stories: INFRA-STORY-001-S3, FEED-STORY-002*
 
 ```bash
 docker compose restart api worker
@@ -141,6 +169,7 @@ docker compose restart api worker
 ---
 
 ### Step 9 - Health & Infrastructure
+*Stories: INFRA-STORY-001, INFRA-BE-001.1, INFRA-BE-001.2, INFRA-BE-001.3*
 
 ```bash
 curl http://localhost:8000/health
