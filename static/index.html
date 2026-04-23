@@ -153,6 +153,7 @@
       <button class="nav-tab" onclick="showPage('notifs')" id="tab-notifs">
         Notifications<span class="badge" id="notif-badge" style="display:none"></span>
       </button>
+      <button class="nav-tab" onclick="openProfile(myUserId)" id="tab-profile">Profile</button>
     </div>
     <div class="nav-right">
       <span class="muted" id="whoami"></span>
@@ -178,6 +179,21 @@
           <button class="secondary sm" onclick="loadFeed()">Refresh</button>
         </div>
         <div id="feed-list"><p class="empty">Loading…</p></div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="page" id="page-profile">
+      <div class="card" id="profile-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div>
+            <div style="font-size:1.2rem;font-weight:700" id="profile-username"></div>
+            <div class="muted" id="profile-stats"></div>
+          </div>
+          <button id="profile-follow-btn" class="sm" onclick="toggleProfileFollow()"></button>
+        </div>
+        <strong style="display:block;margin-bottom:.5rem">Posts</strong>
+        <div id="profile-posts"></div>
       </div>
     </div>
 
@@ -358,9 +374,84 @@
     }
     el.innerHTML = d.posts.map(p => `
       <div class="post-item">
-        <div class="post-meta"><strong>@${esc(p.author_username || p.author_id)}</strong></div>
+        <div class="post-meta">
+          <strong><a href="#" onclick="openProfile('${p.author_id}');return false">@${esc(p.author_username || p.author_id)}</a></strong>
+          &middot; <a href="#" class="muted" onclick="openPost('${p.post_id}');return false">permalink</a>
+        </div>
         <div class="post-text">${esc(p.text)}</div>
       </div>`).join("");
+  }
+
+  // ── Profile ──
+  let profileUserId = null;
+
+  async function openProfile(uid) {
+    profileUserId = uid;
+    const r = await api("/users/" + uid);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById("profile-username").textContent = "@" + d.username;
+    document.getElementById("profile-stats").textContent =
+      `${d.follower_count} followers · ${d.following_count} following`;
+
+    const btn = document.getElementById("profile-follow-btn");
+    if (uid === myUserId) {
+      btn.style.display = "none";
+    } else {
+      btn.style.display = "";
+      btn.textContent = d.is_following ? "Unfollow" : "Follow";
+      btn.className = d.is_following ? "sm danger" : "sm";
+    }
+
+    // load their posts via feed fallback - use post_repo via search
+    const postsR = await api("/users/" + uid + "/posts");
+    const postsEl = document.getElementById("profile-posts");
+    if (postsR.ok) {
+      const pd = await postsR.json();
+      postsEl.innerHTML = pd.posts.length
+        ? pd.posts.map(p => `
+            <div class="post-item">
+              <div class="post-text">${esc(p.text)}</div>
+              <div class="post-meta" style="margin-top:.3rem">
+                <a href="#" class="muted" onclick="openPost('${p.post_id}');return false">permalink</a>
+              </div>
+            </div>`).join("")
+        : '<p class="empty">No posts yet.</p>';
+    } else {
+      postsEl.innerHTML = '<p class="empty">No posts yet.</p>';
+    }
+
+    showPage("profile");
+  }
+
+  async function toggleProfileFollow() {
+    if (!profileUserId) return;
+    const r = await api("/users/" + profileUserId);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.is_following) {
+      await api("/users/" + profileUserId + "/follow", "DELETE");
+    } else {
+      await api("/users/" + profileUserId + "/follow", "POST");
+    }
+    openProfile(profileUserId);
+  }
+
+  // ── Post permalink ──
+  async function openPost(postId) {
+    const r = await api("/posts/" + postId);
+    if (!r.ok) return;
+    const p = await r.json();
+    const w = window.open("", "_blank");
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      <title>Post by @${esc(p.author_username || p.author_id)}</title>
+      <style>body{font-family:system-ui,sans-serif;max-width:600px;margin:2rem auto;padding:0 1rem}
+      .meta{color:#65676b;font-size:.85rem;margin-bottom:.5rem}</style></head><body>
+      <div class="meta"><strong>@${esc(p.author_username || p.author_id)}</strong></div>
+      <p>${esc(p.text)}</p>
+      <div class="meta">Post ID: ${esc(p.post_id)}</div>
+      </body></html>`);
+    w.document.close();
   }
 
   // ── People ──

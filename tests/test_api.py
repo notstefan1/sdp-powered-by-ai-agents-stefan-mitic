@@ -145,3 +145,24 @@ def test_get_post_by_id_not_found(client):
 
     # THEN
     assert resp.status_code == 404
+
+
+def test_get_user_profile(client):
+    # GIVEN - Story: USER-BE-003.1, USER-BE-003.3
+    token = _register_and_login(client, "alice")
+    bob_id = client.post(
+        "/register",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    ).json()["user_id"]
+    # alice follows bob
+    client.post(f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token}"})
+
+    # WHEN
+    resp = client.get(f"/users/{bob_id}", headers={"Authorization": f"Bearer {token}"})
+
+    # THEN
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["username"] == "bob"
+    assert body["follower_count"] == 1
+    assert body["is_following"] is True

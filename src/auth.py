@@ -13,20 +13,41 @@ class UserStore:
     """In-memory user store (used in tests)."""
 
     def __init__(self):
-        self._users = {}
+        self._users: dict[str, dict] = {}  # username -> {user_id, password_hash}
+        self._by_id: dict[str, str] = {}  # user_id -> username
 
     def create(self, username: str, password: str) -> str:
         user_id = f"u-{uuid.uuid4().hex[:8]}"
         pw_hash = hashlib.sha256(password.encode()).hexdigest()
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
+        self._by_id[user_id] = username
         return user_id
 
     def create_with_id(self, user_id: str, username: str, password: str) -> None:
+        if username in self._users:
+            raise ValueError("username_taken")
         pw_hash = hashlib.sha256(password.encode()).hexdigest()
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
+        self._by_id[user_id] = username
 
     def get(self, username: str):
         return self._users.get(username)
+
+    def get_by_id(self, user_id: str):
+        username = self._by_id.get(user_id)
+        if not username:
+            return None
+        return {"user_id": user_id, "username": username}
+
+    def search(self, query: str) -> list[dict]:
+        return [
+            {"user_id": v["user_id"], "username": k}
+            for k, v in self._users.items()
+            if query.lower() in k.lower()
+        ]
+
+    def all_user_ids(self) -> list[str]:
+        return list(self._by_id.keys())
 
 
 class DbUserStore:

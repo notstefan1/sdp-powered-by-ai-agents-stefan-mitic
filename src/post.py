@@ -23,6 +23,13 @@ class PostRepository:
     def get(self, post_id: str) -> Post | None:
         return self._store.get(post_id)
 
+    def get_by_author(self, author_id: str) -> list[Post]:
+        return sorted(
+            [p for p in self._store.values() if p.author_id == author_id],
+            key=lambda p: p.post_id,
+            reverse=True,
+        )
+
 
 class DbPostRepository:
     def save(self, post: Post) -> None:
@@ -47,6 +54,19 @@ class DbPostRepository:
         if not row:
             return None
         return Post(post_id=row[0], author_id=row[1], text=row[2])
+
+    def get_by_author(self, author_id: str) -> list[Post]:
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT post_id, author_id, text FROM posts"
+                " WHERE author_id = %s ORDER BY created_at DESC",
+                (author_id,),
+            )
+            return [
+                Post(post_id=r[0], author_id=r[1], text=r[2]) for r in cur.fetchall()
+            ]
 
     @property
     def _store(self):

@@ -202,6 +202,20 @@ def create_app() -> FastAPI:
             posts.append(row)
         return {"posts": posts}
 
+    @app.get("/users/{uid}/posts")
+    def get_user_posts(uid: str, user_id: str = Depends(current_user)):
+        posts = post_repo.get_by_author(uid)
+        result = []
+        for p in posts:
+            row = vars(p).copy()
+            if hasattr(user_store, "get_by_id"):
+                u = user_store.get_by_id(p.author_id)
+                row["author_username"] = u["username"] if u else p.author_id
+            else:
+                row["author_username"] = p.author_id
+            result.append(row)
+        return {"posts": result}
+
     @app.get("/posts/{post_id}")
     def get_post(post_id: str, user_id: str = Depends(current_user)):
         p = post_repo.get(post_id)
