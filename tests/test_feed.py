@@ -41,3 +41,14 @@ def test_feed_be_001_1_s2__feed_served_from_sql_on_cache_miss():
     # THEN
     assert post_id in result
     assert cache.exists("u-bob")
+
+
+def test_feed_story_001_s3__empty_feed_for_user_with_no_follows():
+    # GIVEN — Story: FEED-STORY-001, Scenario: S3
+    _, _, _, feed_service = _setup()
+
+    # WHEN
+    result = feed_service.get_feed("u-nobody")
+
+    # THEN
+    assert result == []
