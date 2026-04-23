@@ -40,3 +40,22 @@ def test_notif_be_001_1_s2__event_with_no_mentions_is_ignored():
 
     # THEN
     assert repo.unread_for("u-alice") == []
+
+
+def test_notif_be_001_2_s1__returns_unread_notifications():
+    # GIVEN — Story: NOTIF-BE-001.2, Scenario: S1
+    service, _ = _service()
+    service.handle_post_created(
+        {"post_id": "post-1", "author_id": "u-bob", "mentioned_user_ids": ["u-alice"]}
+    )
+    service.handle_post_created(
+        {"post_id": "post-2", "author_id": "u-carol", "mentioned_user_ids": ["u-alice"]}
+    )
+
+    # WHEN
+    result = service.get_unread("u-alice")
+
+    # THEN
+    assert len(result) == 2
+    assert all(n.recipient_id == "u-alice" for n in result)
+    assert all(not n.read for n in result)
