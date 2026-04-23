@@ -118,7 +118,11 @@ def create_app() -> FastAPI:
     def create_post(body: PostBody, user_id: str = Depends(current_user)):
         try:
             result = post_service.publish(user_id, body.text)
-            feed_service.fan_out(result["post_id"], user_id, time.time())
+            ts = time.time()
+            feed_service.fan_out(result["post_id"], user_id, ts)
+            # also add to author's own feed
+            feed_cache = feed_service._cache
+            feed_cache.zadd(user_id, ts, result["post_id"])
             if emitter.events:
                 notif_service.handle_post_created(emitter.events[-1])
             return result
@@ -127,7 +131,9 @@ def create_app() -> FastAPI:
 
     @app.get("/feed")
     def get_feed(user_id: str = Depends(current_user)):
-        return {"posts": feed_service.get_feed(user_id)}
+        post_ids = feed_service.get_feed(user_id)
+        posts = [vars(p) for pid in post_ids if (p := post_repo.get(pid)) is not None]
+        return {"posts": posts}
 
     @app.post("/users/{followee_id}/follow", status_code=201)
     def follow(followee_id: str, user_id: str = Depends(current_user)):

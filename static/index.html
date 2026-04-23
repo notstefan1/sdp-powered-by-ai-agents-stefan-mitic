@@ -2,53 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SocialApp</title>
   <style>
-    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; }
-    input, textarea { display: block; margin: .4rem 0; width: 100%; box-sizing: border-box; }
-    button { margin: .2rem .2rem .2rem 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+    }
+
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: .75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav .brand { font-weight: 700; font-size: 1.2rem; color: #1877f2; }
+    nav .user-info { display: flex; align-items: center; gap: .75rem; font-size: .9rem; }
+    nav button { font-size: .85rem; }
+
+    .container { max-width: 600px; margin: 1.5rem auto; padding: 0 1rem; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #444; }
+
+    input, textarea {
+      width: 100%;
+      padding: .6rem .75rem;
+      border: 1px solid #ccd0d5;
+      border-radius: 6px;
+      font-size: .95rem;
+      margin-bottom: .6rem;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #1877f2; }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .btn-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    button {
+      padding: .5rem 1.1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      background: #1877f2;
+      color: #fff;
+      transition: background .15s;
+    }
+    button:hover { background: #166fe5; }
+    button.secondary { background: #e4e6eb; color: #1c1e21; }
+    button.secondary:hover { background: #d8dadf; }
+
+    .error { color: #d93025; font-size: .85rem; margin-top: .3rem; }
+    .success { color: #1a7f37; font-size: .85rem; margin-top: .3rem; }
+
+    .post-item {
+      border-bottom: 1px solid #f0f2f5;
+      padding: .85rem 0;
+    }
+    .post-item:last-child { border-bottom: none; }
+    .post-meta { font-size: .8rem; color: #65676b; margin-bottom: .3rem; }
+    .post-text { font-size: .95rem; line-height: 1.4; }
+
+    .empty { color: #65676b; font-size: .9rem; text-align: center; padding: 1.5rem 0; }
+
+    #auth-section { max-width: 400px; margin: 3rem auto; padding: 0 1rem; }
+    #auth-section .card { padding: 2rem; }
+    #auth-section h1 { font-size: 1.5rem; margin-bottom: 1.25rem; color: #1877f2; }
+
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .tab {
+      flex: 1; padding: .5rem; text-align: center; cursor: pointer;
+      border-radius: 6px; font-size: .9rem; font-weight: 600;
+      background: #e4e6eb; color: #1c1e21; border: none;
+    }
+    .tab.active { background: #1877f2; color: #fff; }
+
     #app { display: none; }
-    .post-item { border-bottom: 1px solid #ccc; padding: .4rem 0; }
-    .error { color: red; }
   </style>
 </head>
 <body>
 
 <section id="auth-section">
-  <h2>SocialApp</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="register()">Register</button>
-  <button onclick="login()">Login</button>
-  <p class="error" id="auth-error"></p>
+  <div class="card">
+    <h1>SocialApp</h1>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('login')">Login</button>
+      <button class="tab" onclick="showTab('register')">Register</button>
+    </div>
+    <div id="tab-login">
+      <input id="login-username" placeholder="Username" autocomplete="username">
+      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+      <button onclick="login()" style="width:100%">Login</button>
+      <p class="error" id="login-error"></p>
+    </div>
+    <div id="tab-register" style="display:none">
+      <input id="reg-username" placeholder="Username" autocomplete="username">
+      <input id="reg-password" type="password" placeholder="Password" autocomplete="new-password">
+      <button onclick="register()" style="width:100%">Create account</button>
+      <p class="error" id="reg-error"></p>
+      <p class="success" id="reg-success"></p>
+    </div>
+  </div>
 </section>
 
-<section id="app">
-  <h2>Feed — <span id="whoami"></span> <button onclick="logout()">Logout</button></h2>
+<div id="app">
+  <nav>
+    <span class="brand">SocialApp</span>
+    <div class="user-info">
+      <span id="whoami"></span>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+  </nav>
 
-  <textarea id="post-text" rows="3" placeholder="What's on your mind? (max 280 chars)"></textarea>
-  <button onclick="publish()">Post</button>
-  <p class="error" id="post-error"></p>
+  <div class="container">
+    <div class="card">
+      <textarea id="post-text" placeholder="What's on your mind? (max 280 chars)" maxlength="280"></textarea>
+      <div class="btn-row">
+        <button onclick="publish()">Post</button>
+        <span id="char-count" style="align-self:center;font-size:.85rem;color:#65676b"></span>
+      </div>
+      <p class="error" id="post-error"></p>
+    </div>
 
-  <button onclick="loadFeed()">Refresh feed</button>
-  <div id="feed"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <h2 style="margin:0">Feed</h2>
+        <button class="secondary" onclick="loadFeed()" style="font-size:.8rem;padding:.3rem .7rem">Refresh</button>
+      </div>
+      <div id="feed"><p class="empty">Loading...</p></div>
+    </div>
 
-  <hr>
-  <h3>Direct Message</h3>
-  <input id="dm-to" placeholder="Recipient user_id">
-  <input id="dm-text" placeholder="Message">
-  <button onclick="sendDM()">Send</button>
-  <p id="dm-status"></p>
-</section>
+    <div class="card">
+      <h2>Direct Message</h2>
+      <input id="dm-to" placeholder="Recipient user_id">
+      <input id="dm-text" placeholder="Message">
+      <div class="btn-row">
+        <button onclick="sendDM()">Send</button>
+        <span id="dm-status" style="align-self:center;font-size:.85rem"></span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   let token = localStorage.getItem("token");
   if (token) showApp();
 
+  document.getElementById("post-text").addEventListener("input", function () {
+    const len = this.value.length;
+    document.getElementById("char-count").textContent = `${len}/280`;
+  });
+
+  function showTab(tab) {
+    document.getElementById("tab-login").style.display = tab === "login" ? "" : "none";
+    document.getElementById("tab-register").style.display = tab === "register" ? "" : "none";
+    document.querySelectorAll(".tab").forEach((t, i) => {
+      t.classList.toggle("active", (i === 0) === (tab === "login"));
+    });
+  }
+
   function showApp() {
     document.getElementById("auth-section").style.display = "none";
     document.getElementById("app").style.display = "block";
-    document.getElementById("whoami").textContent = localStorage.getItem("username");
+    document.getElementById("whoami").textContent = "@" + localStorage.getItem("username");
     loadFeed();
   }
 
@@ -60,28 +194,34 @@
   }
 
   async function register() {
-    const u = document.getElementById("username").value;
-    const p = document.getElementById("password").value;
+    const u = document.getElementById("reg-username").value.trim();
+    const p = document.getElementById("reg-password").value;
     const r = await fetch("/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: u, password: p }),
     });
     const d = await r.json();
-    document.getElementById("auth-error").textContent =
-      r.ok ? "Registered! Now login." : d.detail;
+    if (r.ok) {
+      document.getElementById("reg-success").textContent = "Account created! Please login.";
+      document.getElementById("reg-error").textContent = "";
+      showTab("login");
+    } else {
+      document.getElementById("reg-error").textContent = d.detail || "Registration failed";
+      document.getElementById("reg-success").textContent = "";
+    }
   }
 
   async function login() {
-    const u = document.getElementById("username").value;
-    const p = document.getElementById("password").value;
+    const u = document.getElementById("login-username").value.trim();
+    const p = document.getElementById("login-password").value;
     const r = await fetch("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: u, password: p }),
     });
     if (!r.ok) {
-      document.getElementById("auth-error").textContent = "Invalid credentials";
+      document.getElementById("login-error").textContent = "Invalid username or password";
       return;
     }
     const d = await r.json();
@@ -89,11 +229,13 @@
     localStorage.setItem("token", token);
     localStorage.setItem("userId", d.user_id);
     localStorage.setItem("username", d.username);
+    document.getElementById("login-error").textContent = "";
     showApp();
   }
 
   async function publish() {
-    const text = document.getElementById("post-text").value;
+    const text = document.getElementById("post-text").value.trim();
+    if (!text) return;
     const r = await fetch("/posts", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -105,28 +247,47 @@
     }
     document.getElementById("post-text").value = "";
     document.getElementById("post-error").textContent = "";
+    document.getElementById("char-count").textContent = "";
     loadFeed();
   }
 
   async function loadFeed() {
     const r = await fetch("/feed", { headers: { Authorization: "Bearer " + token } });
     const d = await r.json();
-    document.getElementById("feed").innerHTML = d.posts.length
-      ? d.posts.map(id => `<div class="post-item">${id}</div>`).join("")
-      : "<p>No posts yet. Follow someone or publish something.</p>";
+    const el = document.getElementById("feed");
+    if (!d.posts || d.posts.length === 0) {
+      el.innerHTML = '<p class="empty">No posts yet. Write something or follow someone.</p>';
+      return;
+    }
+    el.innerHTML = d.posts.map(p => `
+      <div class="post-item">
+        <div class="post-meta">@${p.author_id} &middot; ${p.post_id}</div>
+        <div class="post-text">${escHtml(p.text)}</div>
+      </div>`).join("");
   }
 
   async function sendDM() {
-    const to = document.getElementById("dm-to").value;
-    const text = document.getElementById("dm-text").value;
+    const to = document.getElementById("dm-to").value.trim();
+    const text = document.getElementById("dm-text").value.trim();
+    if (!to || !text) return;
     const r = await fetch("/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
       body: JSON.stringify({ recipient_id: to, text }),
     });
-    const d = await r.json();
-    document.getElementById("dm-status").textContent = r.ok ? "Sent!" : d.detail;
-    if (r.ok) document.getElementById("dm-text").value = "";
+    const status = document.getElementById("dm-status");
+    if (r.ok) {
+      status.style.color = "#1a7f37";
+      status.textContent = "Sent!";
+      document.getElementById("dm-text").value = "";
+    } else {
+      status.style.color = "#d93025";
+      status.textContent = (await r.json()).detail;
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 </script>
 </body>

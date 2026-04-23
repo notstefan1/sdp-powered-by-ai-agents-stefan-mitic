@@ -68,6 +68,24 @@ def test_get_feed_returns_posts(client):
     assert "posts" in resp.json()
 
 
+def test_get_feed_returns_own_posts(client):
+    # GIVEN - a user posts something
+    token = _register_and_login(client)
+    client.post(
+        "/posts",
+        json={"text": "My own post"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # WHEN - they view their feed
+    resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
+
+    # THEN - their own post appears with text
+    posts = resp.json()["posts"]
+    assert len(posts) > 0
+    assert posts[0]["text"] == "My own post"
+
+
 def test_post_messages_sends_dm(client):
     token_alice = _register_and_login(client, "alice")
     bob_id = client.post(
