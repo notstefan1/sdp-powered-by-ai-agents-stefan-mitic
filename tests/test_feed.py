@@ -23,3 +23,21 @@ def test_feed_be_001_1_s1__feed_served_from_cache():
 
     # THEN
     assert result == ["post-xyz", "post-abc"]
+
+
+def test_feed_be_001_1_s2__feed_served_from_sql_on_cache_miss():
+    # GIVEN — Story: FEED-BE-001.1, Scenario: S2
+    from src.post import EventEmitter, MentionParser, PostService
+
+    follow_repo, post_repo, cache, feed_service = _setup()
+    follow_repo.add("u-bob", "u-alice")
+    post_id = PostService(post_repo, EventEmitter(), MentionParser({})).publish(
+        "u-alice", "Hello"
+    )["post_id"]
+
+    # WHEN
+    result = feed_service.get_feed("u-bob")
+
+    # THEN
+    assert post_id in result
+    assert cache.exists("u-bob")
