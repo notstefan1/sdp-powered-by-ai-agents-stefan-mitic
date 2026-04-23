@@ -133,18 +133,26 @@ def test_data_persists_across_app_restart():
 
 @skip_no_db
 def test_mention_creates_notification():
-    # GIVEN - Story: NOTIF-BE-001.1 with real DB
+    # GIVEN - Story: NOTIF-BE-001.1 with real DB + worker
+    import redis as redis_lib
+
+    from src.worker import ensure_consumer_groups, process_once
+
+    r = redis_lib.from_url(os.environ["REDIS_URL"])
+    ensure_consumer_groups(r)
+
     client = TestClient(create_app())
     _register(client, "alice")
     _register(client, "bob")
     bob_token = _login_token(client, "bob")
 
-    # WHEN - bob posts mentioning @alice
+    # WHEN - bob posts mentioning @alice (event goes to Redis Stream)
     client.post(
         "/posts",
         json={"text": "Hey @alice how are you"},
         headers={"Authorization": f"Bearer {bob_token}"},
     )
+    process_once(r)  # worker processes the stream
 
     # THEN - alice has an unread notification
     alice_token = _login_token(client, "alice")
@@ -174,3 +182,44 @@ def test_feed_served_from_redis_after_post():
     resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
     posts = resp.json()["posts"]
     assert any(p["text"] == "Redis cache test" for p in posts)
+
+
+@skip_no_db
+def test_worker_consumes_post_created_event():
+    # GIVEN - Story: NOTIF-INFRA-001.3 / FEED-INFRA-001.3
+    import json
+
+    import redis as redis_lib
+
+    r = redis_lib.from_url(os.environ["REDIS_URL"])
+    # ensure consumer groups exist
+    from src.worker import ensure_consumer_groups
+
+    ensure_consumer_groups(r)
+
+    # WHEN - write a post.created event directly to the stream
+    _register(TestClient(create_app()), "alice")
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT user_id FROM users WHERE username='alice'")
+        alice_id = cur.fetchone()[0]
+
+    r.xadd(
+        "posts:events",
+        {
+            "post_id": "test-post-1",
+            "author_id": alice_id,
+            "mentioned_user_ids": json.dumps([alice_id]),
+        },
+    )
+
+    # process one batch
+    from src.worker import process_once
+
+    process_once(r)
+
+    # THEN - notification created for alice
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT COUNT(*) FROM notifications WHERE recipient_id=%s", (alice_id,)
+        )
+        assert cur.fetchone()[0] >= 1

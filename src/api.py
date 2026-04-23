@@ -157,10 +157,29 @@ def create_app() -> FastAPI:
         try:
             result = post_service.publish(user_id, body.text)
             ts = time.time()
-            feed_service.fan_out(result["post_id"], user_id, ts)
+            # fan-out to own feed immediately (low latency for author)
             feed_service._cache.zadd(user_id, ts, result["post_id"])
-            if emitter.events:
-                notif_service.handle_post_created(emitter.events[-1])
+            # emit to Redis Stream for worker to fan-out to followers + notify
+            if redis_url:
+                import json as _json
+
+                r = redis_lib.from_url(redis_url)
+                event = emitter.events[-1] if emitter.events else {}
+                r.xadd(
+                    "posts:events",
+                    {
+                        "post_id": result["post_id"],
+                        "author_id": user_id,
+                        "mentioned_user_ids": _json.dumps(
+                            event.get("mentioned_user_ids", [])
+                        ),
+                    },
+                )
+            else:
+                # in-memory fallback for tests: process synchronously
+                feed_service.fan_out(result["post_id"], user_id, ts)
+                if emitter.events:
+                    notif_service.handle_post_created(emitter.events[-1])
             return result
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
