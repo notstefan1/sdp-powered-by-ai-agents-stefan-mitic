@@ -43,3 +43,12 @@ def test_auth_be_001_2_s1__valid_token_decodes_user_id():
 
     # THEN
     assert user_id == result["user_id"]
+
+
+def test_auth_be_001_2_s2__tampered_token_raises_error():
+    # GIVEN - Story: AUTH-BE-001.2, Scenario: S2
+    service, _ = _service()
+
+    # WHEN / THEN
+    with pytest.raises(ValueError, match="invalid_token"):
+        service.decode_token("not.a.valid.token")
