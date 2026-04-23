@@ -35,3 +35,32 @@ def test_post_login_returns_token():
     # THEN
     assert resp.status_code == 200
     assert "token" in resp.json()
+
+
+def _register_and_login(client):
+    client.post(
+        "/register",
+        json={"username": "alice", "password": "pass"},  # pragma: allowlist secret
+    )
+    resp = client.post(
+        "/auth/login",
+        json={"username": "alice", "password": "pass"},  # pragma: allowlist secret
+    )
+    return resp.json()["token"]
+
+
+def test_post_posts_creates_post():
+    # GIVEN - Story: POST-BE-001.1, HTTP layer
+    client = TestClient(create_app())
+    token = _register_and_login(client)
+
+    # WHEN
+    resp = client.post(
+        "/posts",
+        json={"text": "Hello world"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # THEN
+    assert resp.status_code == 201
+    assert "post_id" in resp.json()
