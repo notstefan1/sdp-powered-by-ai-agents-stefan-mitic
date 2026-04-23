@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SocialApp</title>
+  <style>
+    body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; }
+    input, textarea { display: block; margin: .4rem 0; width: 100%; box-sizing: border-box; }
+    button { margin: .2rem .2rem .2rem 0; }
+    #app { display: none; }
+    .post-item { border-bottom: 1px solid #ccc; padding: .4rem 0; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+
+<section id="auth-section">
+  <h2>SocialApp</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+  <p class="error" id="auth-error"></p>
+</section>
+
+<section id="app">
+  <h2>Feed — <span id="whoami"></span> <button onclick="logout()">Logout</button></h2>
+
+  <textarea id="post-text" rows="3" placeholder="What's on your mind? (max 280 chars)"></textarea>
+  <button onclick="publish()">Post</button>
+  <p class="error" id="post-error"></p>
+
+  <button onclick="loadFeed()">Refresh feed</button>
+  <div id="feed"></div>
+
+  <hr>
+  <h3>Direct Message</h3>
+  <input id="dm-to" placeholder="Recipient user_id">
+  <input id="dm-text" placeholder="Message">
+  <button onclick="sendDM()">Send</button>
+  <p id="dm-status"></p>
+</section>
+
+<script>
+  let token = localStorage.getItem("token");
+  if (token) showApp();
+
+  function showApp() {
+    document.getElementById("auth-section").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("whoami").textContent = localStorage.getItem("username");
+    loadFeed();
+  }
+
+  function logout() {
+    localStorage.clear();
+    token = null;
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("app").style.display = "none";
+  }
+
+  async function register() {
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    const r = await fetch("/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    const d = await r.json();
+    document.getElementById("auth-error").textContent =
+      r.ok ? "Registered! Now login." : d.detail;
+  }
+
+  async function login() {
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    const r = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    if (!r.ok) {
+      document.getElementById("auth-error").textContent = "Invalid credentials";
+      return;
+    }
+    const d = await r.json();
+    token = d.token;
+    localStorage.setItem("token", token);
+    localStorage.setItem("userId", d.user_id);
+    localStorage.setItem("username", d.username);
+    showApp();
+  }
+
+  async function publish() {
+    const text = document.getElementById("post-text").value;
+    const r = await fetch("/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ text }),
+    });
+    if (!r.ok) {
+      document.getElementById("post-error").textContent = (await r.json()).detail;
+      return;
+    }
+    document.getElementById("post-text").value = "";
+    document.getElementById("post-error").textContent = "";
+    loadFeed();
+  }
+
+  async function loadFeed() {
+    const r = await fetch("/feed", { headers: { Authorization: "Bearer " + token } });
+    const d = await r.json();
+    document.getElementById("feed").innerHTML = d.posts.length
+      ? d.posts.map(id => `<div class="post-item">${id}</div>`).join("")
+      : "<p>No posts yet. Follow someone or publish something.</p>";
+  }
+
+  async function sendDM() {
+    const to = document.getElementById("dm-to").value;
+    const text = document.getElementById("dm-text").value;
+    const r = await fetch("/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ recipient_id: to, text }),
+    });
+    const d = await r.json();
+    document.getElementById("dm-status").textContent = r.ok ? "Sent!" : d.detail;
+    if (r.ok) document.getElementById("dm-text").value = "";
+  }
+</script>
+</body>
+</html>

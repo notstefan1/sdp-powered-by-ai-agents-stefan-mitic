@@ -108,3 +108,15 @@ def test_post_messages_sends_dm():
     # THEN
     assert resp.status_code == 201
     assert "message_id" in resp.json()
+
+
+def test_get_root_serves_html():
+    # GIVEN - Story: INFRA-FE-001.1 / minimal frontend
+    client = TestClient(create_app())
+
+    # WHEN
+    resp = client.get("/")
+
+    # THEN
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]

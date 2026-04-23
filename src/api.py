@@ -1,8 +1,10 @@
 """FastAPI application - HTTP layer wiring all services."""
 
 import time
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -27,6 +29,9 @@ class _Auth:
             return self._svc.decode_token(creds.credentials)
         except ValueError as e:
             raise HTTPException(status_code=401, detail="unauthorized") from e
+
+
+_STATIC = Path(__file__).parent.parent / "static"
 
 
 def create_app() -> FastAPI:
@@ -128,5 +133,9 @@ def create_app() -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "ok", "postgres": "ok", "redis": "ok"}
+
+    @app.get("/", response_class=FileResponse)
+    def index():
+        return str(_STATIC / "index.html")
 
     return app
