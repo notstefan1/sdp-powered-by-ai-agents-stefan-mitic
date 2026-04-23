@@ -1,6 +1,6 @@
 # Chapter 5: Building Block View
 
-## 5.1 Level 1 — Containers
+## 5.1 Level 1 - Containers
 
 ![Containers](diagrams/c4-02-containers.svg)
 
@@ -17,7 +17,7 @@ The system is decomposed into five logical service modules behind a single FastA
 | PostgreSQL          | Source of truth for all persistent data                               |
 | Redis               | Feed cache (sorted sets) + event bus (Streams)                        |
 
-## 5.2 Level 2 — Post Service Components
+## 5.2 Level 2 - Post Service Components
 
 ![Post Service Components](diagrams/c4-03-components-post.svg)
 
@@ -25,13 +25,15 @@ Key flow: `Post Router → Post Publisher → Mention Parser + Post Repository +
 
 The `Event Emitter` publishes a `post.created` event containing `{post_id, author_id, mentioned_user_ids}`.
 
-## 5.3 Level 2 — Feed Service Components
+## 5.3 Level 2 - Feed Service Components
 
 ![Feed Service Components](diagrams/c4-04-components-feed.svg)
 
 Key flow (write): `Feed Updater` consumes `post.created`, fetches the author's followers from PostgreSQL, and fans out by writing the post ID into each follower's Redis sorted set (`ZADD feed:{follower_id} <timestamp> <post_id>`).
 
 Key flow (read): `Feed Reader` does `ZREVRANGE feed:{uid}` on Redis; on cache miss it falls back to a SQL query.
+
+Follow graph updates are emitted as `follow.created` events. In this demo architecture, these events are consumed by the Feed Service only to warm small metadata caches and trigger optional feed pre-warm jobs; canonical follower relationships remain in PostgreSQL.
 
 ## 5.4 Data Isolation Rule
 
