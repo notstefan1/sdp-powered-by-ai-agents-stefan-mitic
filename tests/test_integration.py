@@ -16,10 +16,23 @@ _TRUNCATE = (
     " RESTART IDENTITY CASCADE"
 )
 
+_PASS = "testpass"  # pragma: allowlist secret
+
+
+def _register(client, username):
+    return client.post(
+        "/register", json={"username": username, "password": _PASS}
+    ).json()
+
+
+def _login_token(client, username):
+    return client.post(
+        "/auth/login", json={"username": username, "password": _PASS}
+    ).json()["token"]
+
 
 @pytest.fixture(autouse=True)
 def clean_db():
-    """Truncate all tables before each integration test."""
     if not DATABASE_URL:
         yield
         return
@@ -36,15 +49,31 @@ def test_register_persists_to_db():
     client = TestClient(create_app())
 
     # WHEN
+    resp = _register(client, "alice")
+
+    # THEN
+    assert resp["username"] == "alice"
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute("SELECT username FROM users WHERE username = 'alice'")
+        assert cur.fetchone()[0] == "alice"
+
+
+@skip_no_db
+def test_follow_persists_to_db():
+    # GIVEN - Story: USER-BE-001.1 with real DB
+    client = TestClient(create_app())
+    alice = _register(client, "alice")
+    _register(client, "bob")
+    bob_token = _login_token(client, "bob")
+
+    # WHEN
     resp = client.post(
-        "/register",
-        json={"username": "alice", "password": "pass"},  # pragma: allowlist secret
+        f"/users/{alice['user_id']}/follow",
+        headers={"Authorization": f"Bearer {bob_token}"},
     )
 
     # THEN
     assert resp.status_code == 201
     with get_connection() as conn, conn.cursor() as cur:
-        cur.execute("SELECT username FROM users WHERE username = 'alice'")
-        row = cur.fetchone()
-    assert row is not None
-    assert row[0] == "alice"
+        cur.execute("SELECT 1 FROM follows WHERE followee_id = %s", (alice["user_id"],))
+        assert cur.fetchone() is not None

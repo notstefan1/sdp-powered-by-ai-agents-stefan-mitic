@@ -16,7 +16,7 @@ from src.feed import FeedCache, FeedService
 from src.messaging import MessageRepository, MessagingService
 from src.notification import NotificationRepository, NotificationService
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
-from src.user import FollowRepository, UserService
+from src.user import DbFollowRepository, FollowRepository, UserService
 
 _STATIC = Path(__file__).parent.parent / "static"
 _bearer = HTTPBearer()
@@ -61,12 +61,14 @@ def create_app() -> FastAPI:
         try:
             run_migrations()
             user_store = DbUserStore()
+            follow_repo = DbFollowRepository()
         except Exception:
-            user_store = UserStore()  # degraded mode - health will report error
+            user_store = UserStore()
+            follow_repo = FollowRepository()
     else:
         user_store = UserStore()
+        follow_repo = FollowRepository()
 
-    follow_repo = FollowRepository()
     user_service = UserService(follow_repo, known_users=set())
     auth_service = AuthService(user_store)
     post_repo = PostRepository()

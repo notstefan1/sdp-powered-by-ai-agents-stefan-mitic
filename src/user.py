@@ -2,6 +2,8 @@
 
 import uuid
 
+from src.db import get_connection
+
 
 class FollowRepository:
     def __init__(self):
@@ -21,6 +23,46 @@ class FollowRepository:
 
     def followees_of(self, follower_id: str) -> list[str]:
         return [fe for f, fe in self._follows if f == follower_id]
+
+
+class DbFollowRepository:
+    def exists(self, follower_id: str, followee_id: str) -> bool:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM follows WHERE follower_id=%s AND followee_id=%s",
+                (follower_id, followee_id),
+            )
+            return cur.fetchone() is not None
+
+    def add(self, follower_id: str, followee_id: str) -> None:
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO follows (follower_id, followee_id) VALUES (%s, %s)",
+                (follower_id, followee_id),
+            )
+            conn.commit()
+
+    def remove(self, follower_id: str, followee_id: str) -> None:
+        with get_connection() as conn:
+            conn.execute(
+                "DELETE FROM follows WHERE follower_id=%s AND followee_id=%s",
+                (follower_id, followee_id),
+            )
+            conn.commit()
+
+    def followers_of(self, followee_id: str) -> list[str]:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT follower_id FROM follows WHERE followee_id=%s", (followee_id,)
+            )
+            return [r[0] for r in cur.fetchall()]
+
+    def followees_of(self, follower_id: str) -> list[str]:
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT followee_id FROM follows WHERE follower_id=%s", (follower_id,)
+            )
+            return [r[0] for r in cur.fetchall()]
 
 
 class UserService:
