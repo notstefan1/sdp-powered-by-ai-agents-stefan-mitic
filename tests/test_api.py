@@ -64,3 +64,21 @@ def test_post_posts_creates_post():
     # THEN
     assert resp.status_code == 201
     assert "post_id" in resp.json()
+
+
+def test_get_feed_returns_posts():
+    # GIVEN - Story: FEED-BE-001.1, HTTP layer
+    client = TestClient(create_app())
+    token = _register_and_login(client)
+    client.post(
+        "/posts",
+        json={"text": "Hello feed"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # WHEN
+    resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
+
+    # THEN
+    assert resp.status_code == 200
+    assert "posts" in resp.json()
