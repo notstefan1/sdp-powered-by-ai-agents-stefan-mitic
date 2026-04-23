@@ -342,7 +342,7 @@
     document.getElementById("tab-" + name).classList.add("active");
     // clear stale errors on every tab switch
     document.querySelectorAll(".error, .success").forEach(el => el.textContent = "");
-    if (name === "notifs") { loadNotifs(); clearNotifBadge(); }
+    if (name === "notifs") loadNotifs();
     if (name === "feed") loadFeed();
   }
 
@@ -579,7 +579,7 @@
   async function markRead(id, btn) {
     await api("/notifications/" + id + "/read", "POST");
     btn.closest(".notif-item").remove();
-    updateNotifBadge();
+    await updateNotifBadge();
   }
 
   async function pollNotifs() {
@@ -596,10 +596,6 @@
     const badge = document.getElementById("notif-badge");
     badge.style.display = count > 0 ? "" : "none";
     badge.textContent = count;
-  }
-
-  function clearNotifBadge() {
-    document.getElementById("notif-badge").style.display = "none";
   }
 
   // ── Utils ──
