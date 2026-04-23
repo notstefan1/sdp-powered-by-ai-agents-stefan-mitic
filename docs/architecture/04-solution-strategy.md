@@ -11,10 +11,10 @@
 
 ## 4.2 Key Architectural Decisions (summary)
 
-1. **Fan-out on write** for feed generation — acceptable for a lightweight network with moderate follower counts.
-2. **Redis Streams** as the event bus — keeps the stack minimal (Redis already present for caching).
-3. **Single PostgreSQL instance** with schema-per-service boundaries — avoids distributed transactions while keeping deployment simple.
-4. **Notification service is async and optional** — a failure there does not affect posting or feed reads.
+1. **Fan-out on write** for feed generation - acceptable for a lightweight network with moderate follower counts.
+2. **Redis Streams** as the event bus - keeps the stack minimal (Redis already present for caching).
+3. **Single PostgreSQL instance** with schema-per-service boundaries - avoids distributed transactions while keeping deployment simple.
+4. **Notification service is async and optional** - a failure there does not affect posting or feed reads.
 
 ## 4.3 Technology Mapping
 

@@ -11,7 +11,7 @@ def _service(emitter=None):
 
 
 def test_msg_be_001_1_s1__message_persisted_and_id_returned():
-    # GIVEN — Story: MSG-BE-001.1, Scenario: S1
+    # GIVEN - Story: MSG-BE-001.1, Scenario: S1
     service, repo = _service()
 
     # WHEN
@@ -27,7 +27,7 @@ def test_msg_be_001_1_s1__message_persisted_and_id_returned():
 
 
 def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
-    # GIVEN — Story: MSG-BE-001.1, Scenario: S2
+    # GIVEN - Story: MSG-BE-001.1, Scenario: S2
     service, repo = _service()
 
     # WHEN / THEN
@@ -37,7 +37,7 @@ def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
 
 
 def test_msg_be_001_1_s1__dm_created_event_emitted():
-    # GIVEN — Story: MSG-BE-001.1, Scenario: S1 (async notification)
+    # GIVEN - Story: MSG-BE-001.1, Scenario: S1 (async notification)
     from src.post import EventEmitter
 
     emitter = EventEmitter()
@@ -56,7 +56,7 @@ def test_msg_be_001_1_s1__dm_created_event_emitted():
 
 
 def test_msg_be_001_2_s1__conversation_returned_in_chronological_order():
-    # GIVEN — Story: MSG-BE-001.2, Scenario: S1
+    # GIVEN - Story: MSG-BE-001.2, Scenario: S1
     service, _ = _service()
     service.send("u-bob", "u-alice", "First")
     service.send("u-alice", "u-bob", "Second")
@@ -70,14 +70,14 @@ def test_msg_be_001_2_s1__conversation_returned_in_chronological_order():
 
 
 def test_msg_story_001_s3__dm_table_isolated_from_post_service():
-    # GIVEN — Story: MSG-STORY-001, Scenario: S3
+    # GIVEN - Story: MSG-STORY-001, Scenario: S3
     from src.post import PostRepository
 
     msg_service, msg_repo = _service()
     post_repo = PostRepository()
     msg_service.send("u-bob", "u-alice", "Private message")
 
-    # WHEN — post service queries its own store
-    # THEN — post repo has no messages; message repo has no posts
+    # WHEN - post service queries its own store
+    # THEN - post repo has no messages; message repo has no posts
     assert len(list(post_repo._store.values())) == 0
     assert len(msg_repo.conversation("u-bob", "u-alice")) == 1

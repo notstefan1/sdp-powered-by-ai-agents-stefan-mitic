@@ -1,4 +1,4 @@
-"""Feed Service — FEED-BE-001.1, FEED-BE-001.2"""
+"""Feed Service - FEED-BE-001.1, FEED-BE-001.2"""
 
 from dataclasses import dataclass, field
 
@@ -28,7 +28,7 @@ class FeedService:
         self._post_repo = post_repo  # PostRepository from post.py
 
     def get_feed(self, user_id: str) -> list[str]:
-        """FEED-BE-001.1 — return post IDs from cache; fall back to SQL on miss."""
+        """FEED-BE-001.1 - return post IDs from cache; fall back to SQL on miss."""
         if self._cache.exists(user_id):
             return self._cache.zrevrange(user_id)
         # SQL fallback: collect posts from all followees
@@ -41,7 +41,7 @@ class FeedService:
         return post_ids
 
     def fan_out(self, post_id: str, author_id: str, timestamp: float) -> None:
-        """FEED-BE-001.2 — write post into each follower's feed cache."""
+        """FEED-BE-001.2 - write post into each follower's feed cache."""
         followers = self._follow_repo.followers_of(author_id)
         for follower_id in followers:
             self._cache.zadd(follower_id, timestamp, post_id)

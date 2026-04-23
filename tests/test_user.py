@@ -11,7 +11,7 @@ def _service():
 
 
 def test_user_be_001_1_s1__follow_relationship_created():
-    # GIVEN — Story: USER-BE-001.1, Scenario: S1
+    # GIVEN - Story: USER-BE-001.1, Scenario: S1
     service, repo = _service()
 
     # WHEN
@@ -22,7 +22,7 @@ def test_user_be_001_1_s1__follow_relationship_created():
 
 
 def test_user_be_001_1_s2__duplicate_follow_returns_conflict():
-    # GIVEN — Story: USER-BE-001.1, Scenario: S2
+    # GIVEN - Story: USER-BE-001.1, Scenario: S2
     service, _ = _service()
     service.follow("u-bob", "u-alice")
 
@@ -32,7 +32,7 @@ def test_user_be_001_1_s2__duplicate_follow_returns_conflict():
 
 
 def test_user_be_001_2_s1__unfollow_removes_relationship():
-    # GIVEN — Story: USER-BE-001.2, Scenario: S1
+    # GIVEN - Story: USER-BE-001.2, Scenario: S1
     service, repo = _service()
     service.follow("u-bob", "u-alice")
 
@@ -44,7 +44,7 @@ def test_user_be_001_2_s1__unfollow_removes_relationship():
 
 
 def test_user_be_001_2_s2__unfollow_non_followed_user_raises():
-    # GIVEN — Story: USER-BE-001.2, Scenario: S2
+    # GIVEN - Story: USER-BE-001.2, Scenario: S2
     service, _ = _service()
 
     # WHEN / THEN

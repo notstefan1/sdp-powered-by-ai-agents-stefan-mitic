@@ -1,4 +1,4 @@
-"""Messaging Service — MSG-BE-001.1, MSG-BE-001.2"""
+"""Messaging Service - MSG-BE-001.1, MSG-BE-001.2"""
 
 import uuid
 from dataclasses import dataclass
@@ -32,7 +32,7 @@ class MessagingService:
         self._emitter = emitter  # optional EventEmitter for async DM notifications
 
     def send(self, sender_id: str, recipient_id: str, text: str) -> dict:
-        """MSG-BE-001.1 — persist DM; raises if recipient unknown."""
+        """MSG-BE-001.1 - persist DM; raises if recipient unknown."""
         if recipient_id not in self._users:
             raise ValueError("recipient_not_found")
         msg = Message(
@@ -54,5 +54,5 @@ class MessagingService:
         return {"message_id": msg.message_id}
 
     def get_conversation(self, user_id: str, other_id: str) -> list[Message]:
-        """MSG-BE-001.2 — return conversation in chronological order."""
+        """MSG-BE-001.2 - return conversation in chronological order."""
         return self._repo.conversation(user_id, other_id)

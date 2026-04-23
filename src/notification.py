@@ -1,4 +1,4 @@
-"""Notification Service — NOTIF-BE-001.1, NOTIF-BE-001.2"""
+"""Notification Service - NOTIF-BE-001.1, NOTIF-BE-001.2"""
 
 import uuid
 from dataclasses import dataclass
@@ -30,7 +30,7 @@ class NotificationService:
         self._repo = repo
 
     def handle_post_created(self, event: dict) -> None:
-        """NOTIF-BE-001.1 — create a notification for each mentioned user."""
+        """NOTIF-BE-001.1 - create a notification for each mentioned user."""
         for uid in event.get("mentioned_user_ids", []):
             self._repo.save(
                 Notification(
@@ -43,5 +43,5 @@ class NotificationService:
             )
 
     def get_unread(self, recipient_id: str) -> list[Notification]:
-        """NOTIF-BE-001.2 — return unread notifications for a user."""
+        """NOTIF-BE-001.2 - return unread notifications for a user."""
         return self._repo.unread_for(recipient_id)

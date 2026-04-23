@@ -13,7 +13,7 @@ def _setup():
 
 
 def test_feed_be_001_1_s1__feed_served_from_cache():
-    # GIVEN — Story: FEED-BE-001.1, Scenario: S1
+    # GIVEN - Story: FEED-BE-001.1, Scenario: S1
     _, _, cache, feed_service = _setup()
     cache.zadd("u-bob", 1000.0, "post-abc")
     cache.zadd("u-bob", 2000.0, "post-xyz")
@@ -26,7 +26,7 @@ def test_feed_be_001_1_s1__feed_served_from_cache():
 
 
 def test_feed_be_001_1_s2__feed_served_from_sql_on_cache_miss():
-    # GIVEN — Story: FEED-BE-001.1, Scenario: S2
+    # GIVEN - Story: FEED-BE-001.1, Scenario: S2
     from src.post import EventEmitter, MentionParser, PostService
 
     follow_repo, post_repo, cache, feed_service = _setup()
@@ -44,7 +44,7 @@ def test_feed_be_001_1_s2__feed_served_from_sql_on_cache_miss():
 
 
 def test_feed_story_001_s3__empty_feed_for_user_with_no_follows():
-    # GIVEN — Story: FEED-STORY-001, Scenario: S3
+    # GIVEN - Story: FEED-STORY-001, Scenario: S3
     _, _, _, feed_service = _setup()
 
     # WHEN
@@ -55,7 +55,7 @@ def test_feed_story_001_s3__empty_feed_for_user_with_no_follows():
 
 
 def test_feed_be_001_2_s1__fan_out_writes_to_all_followers():
-    # GIVEN — Story: FEED-BE-001.2, Scenario: S1
+    # GIVEN - Story: FEED-BE-001.2, Scenario: S1
     follow_repo, _, cache, feed_service = _setup()
     follow_repo.add("u-1", "u-alice")
     follow_repo.add("u-2", "u-alice")

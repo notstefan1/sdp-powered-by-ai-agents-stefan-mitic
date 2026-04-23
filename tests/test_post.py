@@ -6,7 +6,7 @@ from src.post import EventEmitter, MentionParser, PostRepository, PostService
 
 
 def test_post_be_001_1_s1__valid_post_persisted_and_event_emitted():
-    # GIVEN — Story: POST-BE-001.1, Scenario: S1
+    # GIVEN - Story: POST-BE-001.1, Scenario: S1
     repo = PostRepository()
     emitter = EventEmitter()
     parser = MentionParser({"alice": "u-123"})
@@ -28,7 +28,7 @@ def test_post_be_001_1_s1__valid_post_persisted_and_event_emitted():
 
 
 def test_post_be_001_1_s2__unauthenticated_request_rejected():
-    # GIVEN — Story: POST-BE-001.1, Scenario: S2
+    # GIVEN - Story: POST-BE-001.1, Scenario: S2
     repo = PostRepository()
     emitter = EventEmitter()
     service = PostService(repo, emitter, MentionParser({}))
@@ -40,7 +40,7 @@ def test_post_be_001_1_s2__unauthenticated_request_rejected():
 
 
 def test_post_be_001_2_s1__single_mention_resolved():
-    # GIVEN — Story: POST-BE-001.2, Scenario: S1
+    # GIVEN - Story: POST-BE-001.2, Scenario: S1
     parser = MentionParser({"alice": "u-123"})
 
     # WHEN
@@ -51,7 +51,7 @@ def test_post_be_001_2_s1__single_mention_resolved():
 
 
 def test_post_be_001_2_s2__unknown_mention_ignored():
-    # GIVEN — Story: POST-BE-001.2, Scenario: S2
+    # GIVEN - Story: POST-BE-001.2, Scenario: S2
     parser = MentionParser({})
 
     # WHEN
@@ -62,7 +62,7 @@ def test_post_be_001_2_s2__unknown_mention_ignored():
 
 
 def test_post_story_001_s3__post_exceeds_character_limit_rejected():
-    # GIVEN — Story: POST-STORY-001, Scenario: S3
+    # GIVEN - Story: POST-STORY-001, Scenario: S3
     service = PostService(PostRepository(), EventEmitter(), MentionParser({}))
 
     # WHEN / THEN

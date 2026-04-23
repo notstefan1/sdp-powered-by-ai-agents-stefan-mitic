@@ -24,6 +24,6 @@ The system provides public short-message posting, social following, feed aggrega
 - Private direct messaging
 
 **Outside scope:**
-- Authentication provider (assumed external OAuth / JWT issuer)
+- Third-party identity providers (OAuth/OpenID integrations)
 - Email / push delivery (fire-and-forget call to external provider)
 - Media / image hosting

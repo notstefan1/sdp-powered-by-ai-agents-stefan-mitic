@@ -15,4 +15,4 @@
 | Dead-Letter Queue (DLQ) | A stream where events are moved after repeated processing failures                         |
 | correlation_id        | A UUID attached to every request and propagated through all log entries for traceability     |
 | C4 Model              | A hierarchical diagramming approach: Context → Containers → Components → Code               |
-| ADR                   | Architecture Decision Record — a short document capturing a significant architectural choice |
+| ADR                   | Architecture Decision Record - a short document capturing a significant architectural choice |

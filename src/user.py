@@ -1,4 +1,4 @@
-"""User Service — USER-BE-001.1, USER-BE-001.2"""
+"""User Service - USER-BE-001.1, USER-BE-001.2"""
 
 
 class FollowRepository:
@@ -27,13 +27,13 @@ class UserService:
         self._users = known_users
 
     def follow(self, follower_id: str, followee_id: str) -> None:
-        """USER-BE-001.1 — follow a user; raises if duplicate."""
+        """USER-BE-001.1 - follow a user; raises if duplicate."""
         if self._repo.exists(follower_id, followee_id):
             raise ValueError("already_following")
         self._repo.add(follower_id, followee_id)
 
     def unfollow(self, follower_id: str, followee_id: str) -> None:
-        """USER-BE-001.2 — unfollow a user; raises if not following."""
+        """USER-BE-001.2 - unfollow a user; raises if not following."""
         if not self._repo.exists(follower_id, followee_id):
             raise ValueError("not_following")
         self._repo.remove(follower_id, followee_id)

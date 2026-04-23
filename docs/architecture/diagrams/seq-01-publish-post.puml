@@ -27,6 +27,6 @@ PG --> FeedUpdater : [follower_ids]
 FeedUpdater -> FeedCache : ZADD feed:{follower_id} <ts> <post_id> (for each follower)
 
 Streams -> Notif : XREAD post.created
-Notif -> PG : INSERT INTO notifications (user_id="alice", type="mention", post_id)
+Notif -> PG : INSERT INTO notifications (recipient_id="alice", actor_id=author_id, entity_type="post", entity_id=post_id, type="mention")
 
 @enduml

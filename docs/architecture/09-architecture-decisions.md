@@ -1,7 +1,5 @@
 # Chapter 9: Architecture Decisions
 
----
-
 ## ADR-001: Fan-out on Write for Feed Generation
 
 **Status:** Accepted
@@ -13,7 +11,7 @@ Feed reads are the dominant workload. Two strategies exist: fan-out on write (pr
 Use fan-out on write. Each new post is pushed into every follower's Redis sorted set by the Feed Updater consumer.
 
 **Rationale:**
-- Feed reads become a single `ZREVRANGE` + batched `SELECT IN` — predictably fast regardless of follower count.
+- Feed reads become a single `ZREVRANGE` + batched `SELECT IN` - predictably fast regardless of follower count.
 - For a lightweight network with moderate follower counts, write amplification is acceptable.
 
 **Consequences:**
@@ -35,7 +33,7 @@ Use Redis Streams with consumer groups.
 
 **Rationale:**
 - Redis is already in the stack for feed caching.
-- Redis Streams provide at-least-once delivery, consumer groups for load sharing, and a dead-letter pattern — sufficient for this scope without adding a new infrastructure component.
+- Redis Streams provide at-least-once delivery, consumer groups for load sharing, and a dead-letter pattern - sufficient for this scope without adding a new infrastructure component.
 
 **Consequences:**
 - No additional broker to operate.
@@ -56,11 +54,11 @@ Use one PostgreSQL instance but enforce ownership: each service module owns its 
 
 **Rationale:**
 - Keeps deployment simple while preserving logical boundaries.
-- The `messages` table is never queried outside the Messaging Service — enforced by code review and module structure, not by network isolation.
+- The `messages` table is never queried outside the Messaging Service - enforced by code review and module structure, not by network isolation.
 
 **Consequences:**
 - Simple deployment and transactions.
-- Coupling risk if boundaries are violated — mitigated by module structure and linting rules.
+- Coupling risk if boundaries are violated - mitigated by module structure and linting rules.
 - Can be split into separate databases later by extracting the service module.
 
 ---

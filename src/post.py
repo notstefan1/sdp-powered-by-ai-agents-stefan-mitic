@@ -1,4 +1,4 @@
-"""Post Service — POST-BE-001.1, POST-BE-001.2"""
+"""Post Service - POST-BE-001.1, POST-BE-001.2"""
 
 import re
 import uuid
@@ -33,7 +33,7 @@ class EventEmitter:
 
 
 class MentionParser:
-    """POST-BE-001.2 — extract @mentions and resolve to user IDs."""
+    """POST-BE-001.2 - extract @mentions and resolve to user IDs."""
 
     def __init__(self, user_lookup: dict[str, str]):
         # user_lookup: {username -> user_id}
@@ -58,7 +58,7 @@ class PostService:
         self._mention_parser = mention_parser
 
     def publish(self, author_id: str, text: str) -> dict:
-        """POST-BE-001.1 — publish a post; raises ValueError if invalid."""
+        """POST-BE-001.1 - publish a post; raises ValueError if invalid."""
         if not author_id:
             raise ValueError("author_id required")
         if len(text) > self.MAX_LENGTH:
