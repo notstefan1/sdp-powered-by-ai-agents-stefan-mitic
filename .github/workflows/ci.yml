@@ -2,33 +2,28 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feature/**', 'fix/**']
+    branches: [ main, "feature/**", "fix/**" ]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'migrations/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'requirements.txt'
-      - '.github/workflows/ci.yml'
+      - "src/**"
+      - "tests/**"
+      - "migrations/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/ci.yml"
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'migrations/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'requirements.txt'
-      - '.github/workflows/ci.yml'
+      - "src/**"
+      - "tests/**"
+      - "migrations/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
-
-env:
-  POSTGRES_USER: app
-  POSTGRES_DB: app
-  POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'app' }}
 
 jobs:
   unit-tests:
@@ -49,32 +44,29 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: app
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'app' }}
+          POSTGRES_PASSWORD: app # pragma: allowlist secret
           POSTGRES_DB: app
         options: >-
-          --health-cmd "pg_isready -U app"
-          --health-interval 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U app" --health-interval 5s --health-retries
+          5
       redis:
         image: redis:7
         options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-retries 5
+          --health-cmd "redis-cli ping" --health-interval 5s --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t kata-tests .
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run integration tests (with postgres + redis)
         env:
-          DATABASE_URL: postgresql://app:${{ secrets.POSTGRES_PASSWORD || 'app' }}@localhost:5432/app
-          REDIS_URL: redis://localhost:6379
-        run: |
-          docker run --rm \
-            --network host \
-            -e DATABASE_URL="$DATABASE_URL" \
-            -e REDIS_URL="$REDIS_URL" \
-            kata-tests pytest tests/ -v --tb=short
+          DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app # pragma: allowlist secret
+          REDIS_URL: redis://127.0.0.1:6379
+        run: pytest tests/test_integration.py -v --tb=short
