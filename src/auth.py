@@ -37,12 +37,16 @@ class DbUserStore:
 
         pw_hash = hashlib.sha256(password.encode()).hexdigest()
         with get_connection() as conn:
-            conn.execute(
-                "INSERT INTO users (user_id, username, password_hash)"
-                " VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING",
-                (user_id, username, pw_hash),
-            )
-            conn.commit()
+            try:
+                conn.execute(
+                    "INSERT INTO users (user_id, username, password_hash)"
+                    " VALUES (%s, %s, %s)",
+                    (user_id, username, pw_hash),
+                )
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                raise ValueError("username_taken") from e
 
     def get(self, username: str):
         from src.db import get_connection

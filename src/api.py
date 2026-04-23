@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from src.auth import AuthService, DbUserStore, UserStore
 from src.db import get_connection, run_migrations
 from src.feed import FeedCache, FeedService
-from src.messaging import MessageRepository, MessagingService
+from src.messaging import DbMessageRepository, MessageRepository, MessagingService
 from src.notification import NotificationRepository, NotificationService
 from src.post import (
     DbPostRepository,
@@ -69,14 +69,17 @@ def create_app() -> FastAPI:
             user_store = DbUserStore()
             follow_repo = DbFollowRepository()
             post_repo = DbPostRepository()
+            msg_repo = DbMessageRepository()
         except Exception:
             user_store = UserStore()
             follow_repo = FollowRepository()
             post_repo = PostRepository()
+            msg_repo = MessageRepository()
     else:
         user_store = UserStore()
         follow_repo = FollowRepository()
         post_repo = PostRepository()
+        msg_repo = MessageRepository()
 
     user_service = UserService(follow_repo, known_users=set())
     auth_service = AuthService(user_store)
@@ -84,7 +87,7 @@ def create_app() -> FastAPI:
     post_service = PostService(post_repo, emitter, MentionParser({}))
     feed_service = FeedService(FeedCache(), follow_repo, post_repo)
     notif_service = NotificationService(NotificationRepository())
-    msg_service = MessagingService(MessageRepository(), user_service._users, emitter)
+    msg_service = MessagingService(msg_repo, user_service._users, emitter)
 
     current_user = _Auth(auth_service)
 
