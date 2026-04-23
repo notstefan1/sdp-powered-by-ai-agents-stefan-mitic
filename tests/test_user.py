@@ -41,3 +41,12 @@ def test_user_be_001_2_s1__unfollow_removes_relationship():
 
     # THEN
     assert not repo.exists("u-bob", "u-alice")
+
+
+def test_user_be_001_2_s2__unfollow_non_followed_user_raises():
+    # GIVEN — Story: USER-BE-001.2, Scenario: S2
+    service, _ = _service()
+
+    # WHEN / THEN
+    with pytest.raises(ValueError, match="not_following"):
+        service.unfollow("u-bob", "u-alice")
