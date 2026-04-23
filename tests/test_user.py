@@ -29,3 +29,15 @@ def test_user_be_001_1_s2__duplicate_follow_returns_conflict():
     # WHEN / THEN
     with pytest.raises(ValueError, match="already_following"):
         service.follow("u-bob", "u-alice")
+
+
+def test_user_be_001_2_s1__unfollow_removes_relationship():
+    # GIVEN — Story: USER-BE-001.2, Scenario: S1
+    service, repo = _service()
+    service.follow("u-bob", "u-alice")
+
+    # WHEN
+    service.unfollow("u-bob", "u-alice")
+
+    # THEN
+    assert not repo.exists("u-bob", "u-alice")
