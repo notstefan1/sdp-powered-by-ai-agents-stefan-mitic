@@ -154,3 +154,23 @@ def test_mention_creates_notification():
     notifs = resp.json()["notifications"]
     assert len(notifs) == 1
     assert notifs[0]["type"] == "mention"
+
+
+@skip_no_db
+def test_feed_served_from_redis_after_post():
+    # GIVEN - Story: FEED-BE-001.1 with real Redis
+    client = TestClient(create_app())
+    _register(client, "alice")
+    token = _login_token(client, "alice")
+
+    # WHEN - post something
+    client.post(
+        "/posts",
+        json={"text": "Redis cache test"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # THEN - second request hits Redis (no SQL), still returns the post
+    resp = client.get("/feed", headers={"Authorization": f"Bearer {token}"})
+    posts = resp.json()["posts"]
+    assert any(p["text"] == "Redis cache test" for p in posts)

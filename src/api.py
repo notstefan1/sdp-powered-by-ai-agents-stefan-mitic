@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from src.auth import AuthService, DbUserStore, UserStore
 from src.db import get_connection, run_migrations
-from src.feed import FeedCache, FeedService
+from src.feed import FeedCache, FeedService, RedisFeedCache
 from src.messaging import DbMessageRepository, MessageRepository, MessagingService
 from src.notification import (
     DbNotificationRepository,
@@ -98,7 +98,8 @@ def create_app() -> FastAPI:
     emitter = EventEmitter()
     mention_parser = DbMentionParser() if db_url else MentionParser({})
     post_service = PostService(post_repo, emitter, mention_parser)
-    feed_service = FeedService(FeedCache(), follow_repo, post_repo)
+    feed_cache = RedisFeedCache(redis_url) if redis_url else FeedCache()
+    feed_service = FeedService(feed_cache, follow_repo, post_repo)
     notif_service = NotificationService(notif_repo)
     msg_service = MessagingService(msg_repo, user_service._users, emitter)
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class FeedCache:
-    """In-memory Redis sorted-set substitute: {user_id -> [(score, post_id)]}"""
+    """In-memory Redis sorted-set substitute (used in tests)."""
 
     _data: dict[str, list[tuple[float, str]]] = field(default_factory=dict)
 
@@ -19,6 +19,27 @@ class FeedCache:
 
     def exists(self, user_id: str) -> bool:
         return user_id in self._data
+
+
+class RedisFeedCache:
+    """Redis sorted-set backed feed cache."""
+
+    def __init__(self, redis_url: str):
+        import redis
+
+        self._r = redis.from_url(redis_url)
+
+    def _key(self, user_id: str) -> str:
+        return f"feed:{user_id}"
+
+    def zadd(self, user_id: str, score: float, post_id: str) -> None:
+        self._r.zadd(self._key(user_id), {post_id: score})
+
+    def zrevrange(self, user_id: str) -> list[str]:
+        return [v.decode() for v in self._r.zrevrange(self._key(user_id), 0, -1)]
+
+    def exists(self, user_id: str) -> bool:
+        return self._r.exists(self._key(user_id)) > 0
 
 
 class FeedService:
