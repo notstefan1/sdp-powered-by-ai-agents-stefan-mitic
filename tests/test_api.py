@@ -115,3 +115,33 @@ def test_health_returns_status(client):
     assert "postgres" in body
     assert "redis" in body
     assert body["status"] in ("ok", "degraded")
+
+
+def test_get_post_by_id(client):
+    # GIVEN - Story: POST-BE-002.1
+    token = _register_and_login(client)
+    post_id = client.post(
+        "/posts",
+        json={"text": "Permalink test"},
+        headers={"Authorization": f"Bearer {token}"},
+    ).json()["post_id"]
+
+    # WHEN
+    resp = client.get(f"/posts/{post_id}", headers={"Authorization": f"Bearer {token}"})
+
+    # THEN
+    assert resp.status_code == 200
+    assert resp.json()["text"] == "Permalink test"
+
+
+def test_get_post_by_id_not_found(client):
+    # GIVEN - Story: POST-STORY-002-S2
+    token = _register_and_login(client)
+
+    # WHEN
+    resp = client.get(
+        "/posts/nonexistent", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    # THEN
+    assert resp.status_code == 404

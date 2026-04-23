@@ -202,6 +202,19 @@ def create_app() -> FastAPI:
             posts.append(row)
         return {"posts": posts}
 
+    @app.get("/posts/{post_id}")
+    def get_post(post_id: str, user_id: str = Depends(current_user)):
+        p = post_repo.get(post_id)
+        if not p:
+            raise HTTPException(status_code=404, detail="not_found")
+        row = vars(p).copy()
+        if hasattr(user_store, "get_by_id"):
+            u = user_store.get_by_id(p.author_id)
+            row["author_username"] = u["username"] if u else p.author_id
+        else:
+            row["author_username"] = p.author_id
+        return row
+
     # --- Follow ---
     @app.post("/users/{followee_id}/follow", status_code=201)
     def follow(followee_id: str, user_id: str = Depends(current_user)):
