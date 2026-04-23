@@ -1,5 +1,7 @@
 """Tests for POST-BE-001.1, POST-BE-001.2"""
 
+import pytest
+
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
 
 
@@ -23,3 +25,15 @@ def test_post_be_001_1_s1__valid_post_persisted_and_event_emitted():
     assert event["post_id"] == result["post_id"]
     assert event["author_id"] == "u-bob"
     assert event["mentioned_user_ids"] == ["u-123"]
+
+
+def test_post_be_001_1_s2__unauthenticated_request_rejected():
+    # GIVEN — Story: POST-BE-001.1, Scenario: S2
+    repo = PostRepository()
+    emitter = EventEmitter()
+    service = PostService(repo, emitter, MentionParser({}))
+
+    # WHEN / THEN
+    with pytest.raises(ValueError, match="author_id required"):
+        service.publish("", "Hello world")
+    assert len(emitter.events) == 0
