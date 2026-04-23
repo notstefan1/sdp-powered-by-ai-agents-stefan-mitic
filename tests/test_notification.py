@@ -59,3 +59,18 @@ def test_notif_be_001_2_s1__returns_unread_notifications():
     assert len(result) == 2
     assert all(n.recipient_id == "u-alice" for n in result)
     assert all(not n.read for n in result)
+
+
+def test_notif_be_003_1_s1__mark_read_sets_read_flag():
+    # GIVEN - Story: NOTIF-BE-003.1, Scenario: S1
+    service, _ = _service()
+    service.handle_post_created(
+        {"post_id": "post-1", "author_id": "u-bob", "mentioned_user_ids": ["u-alice"]}
+    )
+    notif = service.get_unread("u-alice")[0]
+
+    # WHEN
+    service.mark_read(notif.notification_id)
+
+    # THEN
+    assert service.get_unread("u-alice") == []

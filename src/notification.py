@@ -24,6 +24,11 @@ class NotificationRepository:
     def unread_for(self, recipient_id: str) -> list[Notification]:
         return [n for n in self._store if n.recipient_id == recipient_id and not n.read]
 
+    def get_by_id(self, notification_id: str) -> Notification | None:
+        return next(
+            (n for n in self._store if n.notification_id == notification_id), None
+        )
+
 
 class NotificationService:
     def __init__(self, repo: NotificationRepository):
@@ -45,3 +50,10 @@ class NotificationService:
     def get_unread(self, recipient_id: str) -> list[Notification]:
         """NOTIF-BE-001.2 - return unread notifications for a user."""
         return self._repo.unread_for(recipient_id)
+
+    def mark_read(self, notification_id: str) -> None:
+        """NOTIF-BE-003.1 - mark a notification as read."""
+        n = self._repo.get_by_id(notification_id)
+        if not n:
+            raise ValueError("notification_not_found")
+        n.read = True
