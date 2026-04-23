@@ -20,6 +20,7 @@ from src.notification import (
     NotificationService,
 )
 from src.post import (
+    DbMentionParser,
     DbPostRepository,
     EventEmitter,
     MentionParser,
@@ -95,7 +96,8 @@ def create_app() -> FastAPI:
     user_service = UserService(follow_repo, known_users=known_users)
     auth_service = AuthService(user_store)
     emitter = EventEmitter()
-    post_service = PostService(post_repo, emitter, MentionParser({}))
+    mention_parser = DbMentionParser() if db_url else MentionParser({})
+    post_service = PostService(post_repo, emitter, mention_parser)
     feed_service = FeedService(FeedCache(), follow_repo, post_repo)
     notif_service = NotificationService(notif_repo)
     msg_service = MessagingService(msg_repo, user_service._users, emitter)

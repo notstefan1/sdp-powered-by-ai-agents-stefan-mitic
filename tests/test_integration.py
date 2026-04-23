@@ -129,3 +129,28 @@ def test_data_persists_across_app_restart():
 
     # THEN - the post is still there
     assert any(p["post_id"] == post_id for p in feed["posts"])
+
+
+@skip_no_db
+def test_mention_creates_notification():
+    # GIVEN - Story: NOTIF-BE-001.1 with real DB
+    client = TestClient(create_app())
+    _register(client, "alice")
+    _register(client, "bob")
+    bob_token = _login_token(client, "bob")
+
+    # WHEN - bob posts mentioning @alice
+    client.post(
+        "/posts",
+        json={"text": "Hey @alice how are you"},
+        headers={"Authorization": f"Bearer {bob_token}"},
+    )
+
+    # THEN - alice has an unread notification
+    alice_token = _login_token(client, "alice")
+    resp = client.get(
+        "/notifications", headers={"Authorization": f"Bearer {alice_token}"}
+    )
+    notifs = resp.json()["notifications"]
+    assert len(notifs) == 1
+    assert notifs[0]["type"] == "mention"

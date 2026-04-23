@@ -81,6 +81,22 @@ class MentionParser:
         return [self._lookup[u] for u in usernames if u in self._lookup]
 
 
+class DbMentionParser:
+    """Resolves @mentions via live DB lookup."""
+
+    def parse(self, text: str) -> list[str]:
+        from src.db import get_connection
+
+        usernames = re.findall(r"@(\w+)", text)
+        if not usernames:
+            return []
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id FROM users WHERE username = ANY(%s)", (usernames,)
+            )
+            return [r[0] for r in cur.fetchall()]
+
+
 class PostService:
     MAX_LENGTH = 280
 
