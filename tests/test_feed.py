@@ -52,3 +52,19 @@ def test_feed_story_001_s3__empty_feed_for_user_with_no_follows():
 
     # THEN
     assert result == []
+
+
+def test_feed_be_001_2_s1__fan_out_writes_to_all_followers():
+    # GIVEN — Story: FEED-BE-001.2, Scenario: S1
+    follow_repo, _, cache, feed_service = _setup()
+    follow_repo.add("u-1", "u-alice")
+    follow_repo.add("u-2", "u-alice")
+    follow_repo.add("u-3", "u-alice")
+
+    # WHEN
+    feed_service.fan_out("post-abc", "u-alice", 1000.0)
+
+    # THEN
+    assert "post-abc" in cache.zrevrange("u-1")
+    assert "post-abc" in cache.zrevrange("u-2")
+    assert "post-abc" in cache.zrevrange("u-3")
