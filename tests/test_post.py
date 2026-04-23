@@ -37,3 +37,14 @@ def test_post_be_001_1_s2__unauthenticated_request_rejected():
     with pytest.raises(ValueError, match="author_id required"):
         service.publish("", "Hello world")
     assert len(emitter.events) == 0
+
+
+def test_post_be_001_2_s1__single_mention_resolved():
+    # GIVEN — Story: POST-BE-001.2, Scenario: S1
+    parser = MentionParser({"alice": "u-123"})
+
+    # WHEN
+    mentioned = parser.parse("Hello @alice")
+
+    # THEN
+    assert mentioned == ["u-123"]
