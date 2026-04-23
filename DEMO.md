@@ -161,10 +161,11 @@ Navigate to **http://localhost:8000** in your browser.
 docker compose restart api worker
 ```
 
-- Refresh the browser - auto-logout (token still valid but shows the flow)
-- Log back in - all posts, follows, and DMs are still there
+- Refresh the browser - you stay logged in (JWT is stateless, validated by the API on every request)
+- The feed loads correctly - Redis cache is cold after restart, so the SQL fallback runs and backfills it
+- All posts, follows, DMs, and notifications are still there (PostgreSQL volume persists)
 
-> **Talking point:** PostgreSQL data is on a named Docker volume (`pgdata`). Redis feed cache is rebuilt from SQL on cold start.
+> **Talking point:** PostgreSQL data lives on a named Docker volume (`pgdata`) - survives container restarts and rebuilds. Redis is ephemeral by design; the SQL fallback is the recovery path. The JWT secret is loaded from the environment so tokens remain valid across restarts.
 
 ---
 
