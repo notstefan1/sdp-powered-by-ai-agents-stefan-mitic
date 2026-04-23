@@ -324,7 +324,12 @@
   async function api(path, method = "GET", body = null, auth = true) {
     const headers = { "Content-Type": "application/json" };
     if (auth) headers["Authorization"] = "Bearer " + token;
-    return fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+    const resp = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+    if (auth && resp.status === 401) {
+      logout();
+      return resp;
+    }
+    return resp;
   }
 
   // ── Feed ──
