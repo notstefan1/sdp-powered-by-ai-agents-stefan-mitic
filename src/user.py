@@ -1,4 +1,6 @@
-"""User Service - USER-BE-001.1, USER-BE-001.2"""
+"""User Service - USER-BE-001.1, USER-BE-001.2, USER-BE-002.1"""
+
+import uuid
 
 
 class FollowRepository:
@@ -25,6 +27,21 @@ class UserService:
     def __init__(self, repo: FollowRepository, known_users: set[str]):
         self._repo = repo
         self._users = known_users
+        self._profiles: dict[str, dict] = {}
+
+    def register(self, username: str, email: str) -> dict:
+        """USER-BE-002.1 - create a new user; raises if username taken."""
+        for p in self._profiles.values():
+            if p["username"] == username:
+                raise ValueError("username_taken")
+        user_id = f"u-{uuid.uuid4().hex[:8]}"
+        self._profiles[user_id] = {
+            "user_id": user_id,
+            "username": username,
+            "email": email,
+        }
+        self._users.add(user_id)
+        return {"user_id": user_id, "username": username}
 
     def follow(self, follower_id: str, followee_id: str) -> None:
         """USER-BE-001.1 - follow a user; raises if duplicate."""
