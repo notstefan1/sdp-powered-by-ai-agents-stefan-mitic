@@ -105,3 +105,27 @@ def test_message_persists_to_db():
     with get_connection() as conn, conn.cursor() as cur:
         cur.execute("SELECT text FROM messages WHERE message_id = %s", (msg_id,))
         assert cur.fetchone()[0] == "Hey Alice"
+
+
+@skip_no_db
+def test_data_persists_across_app_restart():
+    # GIVEN - Story: INFRA-STORY-001-S3 - data survives container restart
+    # Simulate restart by creating two separate app instances (each calls create_app())
+    # which is equivalent to the process restarting - state is only in the DB.
+    client1 = TestClient(create_app())
+    _register(client1, "alice")
+    token = _login_token(client1, "alice")
+    resp = client1.post(
+        "/posts",
+        json={"text": "Survives restart"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    post_id = resp.json()["post_id"]
+
+    # WHEN - a new app instance starts (simulates restart)
+    client2 = TestClient(create_app())
+    token2 = _login_token(client2, "alice")
+    feed = client2.get("/feed", headers={"Authorization": f"Bearer {token2}"}).json()
+
+    # THEN - the post is still there
+    assert any(p["post_id"] == post_id for p in feed["posts"])

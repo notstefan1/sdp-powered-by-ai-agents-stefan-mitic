@@ -31,9 +31,10 @@ class FeedService:
         """FEED-BE-001.1 - return post IDs from cache; fall back to SQL on miss."""
         if self._cache.exists(user_id):
             return self._cache.zrevrange(user_id)
-        # SQL fallback: collect posts from all followees
+        # SQL fallback: own posts + followees' posts
         followees = self._follow_repo.followees_of(user_id)
-        posts = [p for p in self._post_repo._store.values() if p.author_id in followees]
+        authors = set(followees) | {user_id}
+        posts = [p for p in self._post_repo._store.values() if p.author_id in authors]
         posts.sort(key=lambda p: p.post_id, reverse=True)
         post_ids = [p.post_id for p in posts]
         for i, pid in enumerate(reversed(post_ids)):
