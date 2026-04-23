@@ -34,3 +34,22 @@ def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
     with pytest.raises(ValueError, match="recipient_not_found"):
         service.send("u-bob", "u-ghost", "Hello")
     assert repo.conversation("u-bob", "u-ghost") == []
+
+
+def test_msg_be_001_1_s1__dm_created_event_emitted():
+    # GIVEN — Story: MSG-BE-001.1, Scenario: S1 (async notification)
+    from src.post import EventEmitter
+
+    emitter = EventEmitter()
+    service, _ = _service(emitter)
+
+    # WHEN
+    result = service.send("u-bob", "u-alice", "Hello")
+
+    # THEN
+    assert len(emitter.events) == 1
+    event = emitter.events[0]
+    assert event["type"] == "dm.created"
+    assert event["message_id"] == result["message_id"]
+    assert event["sender_id"] == "u-bob"
+    assert event["recipient_id"] == "u-alice"
