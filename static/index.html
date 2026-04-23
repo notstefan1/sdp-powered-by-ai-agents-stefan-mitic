@@ -267,6 +267,10 @@
   async function register() {
     const u = document.getElementById("reg-username").value.trim();
     const p = document.getElementById("reg-password").value;
+    if (!u || !p) {
+      document.getElementById("reg-error").textContent = "Username and password are required.";
+      return;
+    }
     const r = await api("/register", "POST", { username: u, password: p }, false);
     if (r.ok) {
       document.getElementById("reg-success").textContent = "Account created! Please login.";
@@ -292,8 +296,11 @@
     initApp();
   }
 
+  let pollTimer = null;
+
   function logout() {
     localStorage.clear(); token = null; myUserId = null; dmRecipientId = null;
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
     // reset all page content so next user starts fresh
     document.getElementById("feed-list").innerHTML = '<p class="empty">Loading…</p>';
     document.getElementById("people-list").innerHTML = '<p class="empty">Search for users to follow.</p>';
@@ -307,9 +314,12 @@
     document.getElementById("post-error").textContent = "";
     document.getElementById("char-count").textContent = "";
     document.getElementById("notif-badge").style.display = "none";
-    // go back to login tab
+    // reset nav to feed tab without triggering loadFeed
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+    document.getElementById("page-feed").classList.add("active");
+    document.getElementById("tab-feed").classList.add("active");
     showAuthTab("login");
-    showPage("feed");
     document.getElementById("auth-section").style.display = "block";
     document.getElementById("app").style.display = "none";
   }
@@ -341,9 +351,8 @@
     const headers = { "Content-Type": "application/json" };
     if (auth) headers["Authorization"] = "Bearer " + token;
     const resp = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
-    if (auth && resp.status === 401) {
+    if (auth && resp.status === 401 && token) {
       logout();
-      return resp;
     }
     return resp;
   }
@@ -574,8 +583,9 @@
   }
 
   async function pollNotifs() {
+    if (!token) return;
     await updateNotifBadge();
-    setTimeout(pollNotifs, 30000);
+    pollTimer = setTimeout(pollNotifs, 30000);
   }
 
   async function updateNotifBadge() {
