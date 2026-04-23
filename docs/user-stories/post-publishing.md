@@ -180,24 +180,38 @@ SO THAT mentioned user IDs are included in the emitted event
 
 ---
 
-## POST-INFRA-001.1: Deploy Post Service Lambda / Container
+## POST-INFRA-001.1: Docker Image Builds and Container Starts
 
-**Architecture Reference**: Section 5.1 — Post Service container; Section 7 — Deployment
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping (`api`)
 **Parent**: POST-STORY-001
 
 AS A developer
-I WANT the Post Service deployed as a runnable unit
-SO THAT the `POST /posts` endpoint is reachable
+I WANT the Docker image to build successfully and the `api` container to start
+SO THAT the `POST /posts` endpoint is reachable locally
 
-### SCENARIO 1: Service starts and health check passes
+### SCENARIO 1: Image builds without errors
 
 **Scenario ID**: POST-INFRA-001.1-S1
 
 **GIVEN**
-* The Post Service container/Lambda is deployed
+* A `Dockerfile` exists at the project root
 
 **WHEN**
-* `GET /health` is called
+* `docker build -t kata-tests .` is executed
+
+**THEN**
+* The build exits with code 0
+* No dependency installation errors appear in the output
+
+### SCENARIO 2: Container starts and health check passes
+
+**Scenario ID**: POST-INFRA-001.1-S2
+
+**GIVEN**
+* The image has been built successfully
+
+**WHEN**
+* `docker compose up api` is executed and `GET /health` is called
 
 **THEN**
 * Response is `200 OK`
@@ -210,7 +224,7 @@ SO THAT the `POST /posts` endpoint is reachable
 **Parent**: POST-STORY-001
 
 AS A developer
-I WANT a `posts` table in PostgreSQL
+I WANT a `posts` table created via migration when the `postgres` container starts
 SO THAT published posts are persisted
 
 ### SCENARIO 1: Post row is insertable
@@ -218,7 +232,8 @@ SO THAT published posts are persisted
 **Scenario ID**: POST-INFRA-001.2-S1
 
 **GIVEN**
-* The `posts` table exists with columns `(post_id, author_id, text, created_at)`
+* The `postgres` container is running
+* The migration has created the `posts` table with columns `(post_id, author_id, text, created_at)`
 
 **WHEN**
 * A valid post row is inserted
@@ -234,7 +249,7 @@ SO THAT published posts are persisted
 **Parent**: POST-STORY-001
 
 AS A developer
-I WANT a Redis Stream `post.created` provisioned
+I WANT the `posts:events` Redis Stream and consumer groups created at startup
 SO THAT the Post Service can emit events consumed by Feed and Notification services
 
 ### SCENARIO 1: Event is written and readable by consumer group
@@ -242,8 +257,8 @@ SO THAT the Post Service can emit events consumed by Feed and Notification servi
 **Scenario ID**: POST-INFRA-001.3-S1
 
 **GIVEN**
-* Redis Stream `posts:events` exists
-* Consumer groups `feed-service` and `notification-service` are registered
+* The `redis` container is running
+* Consumer groups `feed-service` and `notification-service` are registered on stream `posts:events`
 
 **WHEN**
 * A `post.created` event is written to the stream
@@ -253,25 +268,26 @@ SO THAT the Post Service can emit events consumed by Feed and Notification servi
 
 ---
 
-## POST-INFRA-001.4: CloudWatch Monitoring for Post Service
+## POST-INFRA-001.4: pytest Suite Runs Inside Docker
 
-**Architecture Reference**: Section 8 — Crosscutting Concepts (observability)
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping
 **Parent**: POST-STORY-001
 
 AS A developer
-I WANT log groups and alarms for the Post Service
-SO THAT errors and latency spikes are observable
+I WANT the full pytest suite to execute inside the Docker container
+SO THAT post-publishing behaviour is verified in the same environment as CI
 
-### SCENARIO 1: Error rate alarm triggers
+### SCENARIO 1: Tests are discovered and executed
 
 **Scenario ID**: POST-INFRA-001.4-S1
 
 **GIVEN**
-* A CloudWatch alarm is configured on 5xx error rate > 1% over 5 minutes
+* The Docker image has been built
 
 **WHEN**
-* The Post Service returns > 1% 5xx responses in a 5-minute window
+* `docker run --rm kata-tests` is executed
 
 **THEN**
-* The alarm transitions to ALARM state
-* A notification is sent to the ops channel
+* pytest discovers tests under `tests/`
+* All post-publishing tests pass
+* Exit code is 0

@@ -3,6 +3,11 @@
 ## 📊 Pareto Progress: 5/5 core stories complete (100%)
 🎯 Core functionality coverage: ~80% of value delivered
 
+> ⚠️ **INFRA stories updated (2026-04-23)**: All INFRA sub-stories have been rewritten to target
+> **local Docker Compose + pytest** (the actual deployment target). References to Lambda,
+> CloudWatch, DynamoDB, SAM, and CloudFormation have been removed.
+> The `requirements-agent.json` has been updated to enforce Docker-based INFRA going forward.
+
 ---
 
 ## Core Stories (20% → 80% value)

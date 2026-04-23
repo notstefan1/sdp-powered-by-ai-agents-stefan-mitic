@@ -160,21 +160,34 @@ SO THAT clients can retrieve unread notifications for the authenticated user
 
 ---
 
-## NOTIF-INFRA-001.1: Deploy Notification Service
+## NOTIF-INFRA-001.1: Docker Image Builds and Worker Container Starts
 
-**Architecture Reference**: Section 5.1 — Notification Service container
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping (`api`, `worker`)
 **Parent**: NOTIF-STORY-001
 
 AS A developer
-I WANT the Notification Service deployed as a runnable unit
-SO THAT the async consumer and notifications endpoint are operational
+I WANT the Docker image to build and the `worker` container to start
+SO THAT the async consumer and notifications endpoint are operational locally
 
-### SCENARIO 1: Service starts and health check passes
+### SCENARIO 1: Image builds without errors
 
 **Scenario ID**: NOTIF-INFRA-001.1-S1
 
 **GIVEN**
-* The Notification Service container is deployed
+* A `Dockerfile` exists at the project root
+
+**WHEN**
+* `docker build -t kata-tests .` is executed
+
+**THEN**
+* The build exits with code 0
+
+### SCENARIO 2: api container health check passes
+
+**Scenario ID**: NOTIF-INFRA-001.1-S2
+
+**GIVEN**
+* `docker compose up api` is running
 
 **WHEN**
 * `GET /health` is called
@@ -190,7 +203,7 @@ SO THAT the async consumer and notifications endpoint are operational
 **Parent**: NOTIF-STORY-001
 
 AS A developer
-I WANT a `notifications` table in PostgreSQL
+I WANT a `notifications` table created via migration when the `postgres` container starts
 SO THAT in-app notifications are persisted
 
 ### SCENARIO 1: Notification row is insertable and queryable
@@ -198,7 +211,8 @@ SO THAT in-app notifications are persisted
 **Scenario ID**: NOTIF-INFRA-001.2-S1
 
 **GIVEN**
-* The `notifications` table exists with columns `(notification_id, recipient_id, post_id, author_id, type, read, created_at)`
+* The `postgres` container is running
+* The migration has created the `notifications` table with columns `(notification_id, recipient_id, post_id, author_id, type, read, created_at)`
 
 **WHEN**
 * A notification row is inserted
@@ -214,19 +228,20 @@ SO THAT in-app notifications are persisted
 **Parent**: NOTIF-STORY-001
 
 AS A developer
-I WANT the `notification-service` consumer group registered on the `posts:events` stream
-SO THAT mention events are consumed reliably even after a service restart
+I WANT the `notification-service` consumer group registered on the `posts:events` stream at startup
+SO THAT mention events are consumed reliably even after a container restart
 
 ### SCENARIO 1: Unprocessed events are consumed after recovery
 
 **Scenario ID**: NOTIF-INFRA-001.3-S1
 
 **GIVEN**
+* The `redis` container is running
 * Consumer group `notification-service` is registered on stream `posts:events`
-* 3 events were written while the service was down (pending entries)
+* 3 events were written while the `worker` container was down (pending entries)
 
 **WHEN**
-* The Notification Service restarts and calls `XREADGROUP GROUP notification-service`
+* The `worker` container restarts and calls `XREADGROUP GROUP notification-service`
 
 **THEN**
 * All 3 pending events are delivered and processed
@@ -234,24 +249,26 @@ SO THAT mention events are consumed reliably even after a service restart
 
 ---
 
-## NOTIF-INFRA-001.4: CloudWatch Monitoring for Notification Service
+## NOTIF-INFRA-001.4: pytest Suite Runs Inside Docker
 
-**Architecture Reference**: Section 8 — Crosscutting Concepts (observability); NF-02
+**Architecture Reference**: Section 7 — Deployment View
 **Parent**: NOTIF-STORY-001
 
 AS A developer
-I WANT log groups and alarms for the Notification Service
-SO THAT consumer lag and errors are observable
+I WANT the full pytest suite to execute inside the Docker container
+SO THAT notification behaviour is verified in the same environment as CI
 
-### SCENARIO 1: Consumer lag alarm triggers
+### SCENARIO 1: Tests are discovered and executed
 
 **Scenario ID**: NOTIF-INFRA-001.4-S1
 
 **GIVEN**
-* A CloudWatch alarm is configured on stream consumer lag > 100 pending messages
+* The Docker image has been built
 
 **WHEN**
-* The pending entry count exceeds 100
+* `docker run --rm kata-tests` is executed
 
 **THEN**
-* The alarm transitions to ALARM state
+* pytest discovers tests under `tests/`
+* All notification tests pass
+* Exit code is 0

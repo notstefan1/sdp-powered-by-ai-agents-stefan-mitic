@@ -177,21 +177,34 @@ SO THAT clients can remove follow relationships
 
 ---
 
-## USER-INFRA-001.1: Deploy User Service
+## USER-INFRA-001.1: Docker Image Builds and User Service Container Starts
 
-**Architecture Reference**: Section 5.1 — User Service container
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping (`api`)
 **Parent**: USER-STORY-001
 
 AS A developer
-I WANT the User Service deployed as a runnable unit
-SO THAT follow/unfollow endpoints are reachable
+I WANT the Docker image to build and the `api` container to start
+SO THAT follow/unfollow endpoints are reachable locally
 
-### SCENARIO 1: Service starts and health check passes
+### SCENARIO 1: Image builds without errors
 
 **Scenario ID**: USER-INFRA-001.1-S1
 
 **GIVEN**
-* The User Service container is deployed
+* A `Dockerfile` exists at the project root
+
+**WHEN**
+* `docker build -t kata-tests .` is executed
+
+**THEN**
+* The build exits with code 0
+
+### SCENARIO 2: Container starts and health check passes
+
+**Scenario ID**: USER-INFRA-001.1-S2
+
+**GIVEN**
+* `docker compose up api` is running
 
 **WHEN**
 * `GET /health` is called
@@ -207,7 +220,7 @@ SO THAT follow/unfollow endpoints are reachable
 **Parent**: USER-STORY-001
 
 AS A developer
-I WANT a `follows` table in PostgreSQL
+I WANT a `follows` table created via migration when the `postgres` container starts
 SO THAT follow relationships are persisted
 
 ### SCENARIO 1: Follow row is insertable and queryable
@@ -215,7 +228,8 @@ SO THAT follow relationships are persisted
 **Scenario ID**: USER-INFRA-001.2-S1
 
 **GIVEN**
-* The `follows` table exists with columns `(follower_id, followee_id, created_at)` and a unique constraint on `(follower_id, followee_id)`
+* The `postgres` container is running
+* The migration has created the `follows` table with columns `(follower_id, followee_id, created_at)` and a unique constraint on `(follower_id, followee_id)`
 
 **WHEN**
 * A follow row is inserted
@@ -226,24 +240,26 @@ SO THAT follow relationships are persisted
 
 ---
 
-## USER-INFRA-001.3: CloudWatch Monitoring for User Service
+## USER-INFRA-001.3: pytest Suite Runs Inside Docker
 
-**Architecture Reference**: Section 8 — Crosscutting Concepts (observability)
+**Architecture Reference**: Section 7 — Deployment View
 **Parent**: USER-STORY-001
 
 AS A developer
-I WANT log groups and alarms for the User Service
-SO THAT errors are observable
+I WANT the full pytest suite to execute inside the Docker container
+SO THAT social graph behaviour is verified in the same environment as CI
 
-### SCENARIO 1: Error rate alarm triggers
+### SCENARIO 1: Tests are discovered and executed
 
 **Scenario ID**: USER-INFRA-001.3-S1
 
 **GIVEN**
-* A CloudWatch alarm is configured on 5xx error rate > 1% over 5 minutes
+* The Docker image has been built
 
 **WHEN**
-* The User Service returns > 1% 5xx responses in a 5-minute window
+* `docker run --rm kata-tests` is executed
 
 **THEN**
-* The alarm transitions to ALARM state
+* pytest discovers tests under `tests/`
+* All user/social-graph tests pass
+* Exit code is 0

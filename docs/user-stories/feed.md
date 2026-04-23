@@ -166,21 +166,34 @@ SO THAT each follower's feed cache is updated at write time
 
 ---
 
-## FEED-INFRA-001.1: Deploy Feed Service
+## FEED-INFRA-001.1: Docker Image Builds and Feed Service Container Starts
 
-**Architecture Reference**: Section 5.1 — Feed Service container
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping (`api`, `worker`)
 **Parent**: FEED-STORY-001
 
 AS A developer
-I WANT the Feed Service deployed as a runnable unit
-SO THAT the feed endpoint and fan-out consumer are operational
+I WANT the Docker image to build and both `api` and `worker` containers to start
+SO THAT the feed endpoint and fan-out consumer are operational locally
 
-### SCENARIO 1: Service starts and health check passes
+### SCENARIO 1: Image builds without errors
 
 **Scenario ID**: FEED-INFRA-001.1-S1
 
 **GIVEN**
-* The Feed Service container is deployed
+* A `Dockerfile` exists at the project root
+
+**WHEN**
+* `docker build -t kata-tests .` is executed
+
+**THEN**
+* The build exits with code 0
+
+### SCENARIO 2: api container health check passes
+
+**Scenario ID**: FEED-INFRA-001.1-S2
+
+**GIVEN**
+* `docker compose up api` is running
 
 **WHEN**
 * `GET /health` is called
@@ -196,7 +209,7 @@ SO THAT the feed endpoint and fan-out consumer are operational
 **Parent**: FEED-STORY-001
 
 AS A developer
-I WANT Redis configured and accessible to the Feed Service
+I WANT Redis running and accessible to the Feed Service
 SO THAT feed sorted sets can be read and written
 
 ### SCENARIO 1: Feed key is writable and readable
@@ -204,7 +217,7 @@ SO THAT feed sorted sets can be read and written
 **Scenario ID**: FEED-INFRA-001.2-S1
 
 **GIVEN**
-* Redis instance is running and reachable by the Feed Service
+* The `redis` container is running and reachable by the `api` container
 
 **WHEN**
 * `ZADD feed:u-1 1000 post-abc` is executed followed by `ZREVRANGE feed:u-1 0 -1`
@@ -220,7 +233,7 @@ SO THAT feed sorted sets can be read and written
 **Parent**: FEED-STORY-001
 
 AS A developer
-I WANT the `feed-service` consumer group registered on the `posts:events` stream
+I WANT the `feed-service` consumer group registered on the `posts:events` stream at startup
 SO THAT fan-out events are consumed reliably
 
 ### SCENARIO 1: Consumer group receives post.created events
@@ -239,24 +252,26 @@ SO THAT fan-out events are consumed reliably
 
 ---
 
-## FEED-INFRA-001.4: CloudWatch Monitoring for Feed Service
+## FEED-INFRA-001.4: pytest Suite Runs Inside Docker
 
-**Architecture Reference**: Section 8 — Crosscutting Concepts (observability)
+**Architecture Reference**: Section 7 — Deployment View
 **Parent**: FEED-STORY-001
 
 AS A developer
-I WANT log groups and alarms for the Feed Service
-SO THAT latency regressions and errors are observable
+I WANT the full pytest suite to execute inside the Docker container
+SO THAT feed behaviour is verified in the same environment as CI
 
-### SCENARIO 1: Latency alarm triggers on p95 > 200 ms
+### SCENARIO 1: Tests are discovered and executed
 
 **Scenario ID**: FEED-INFRA-001.4-S1
 
 **GIVEN**
-* A CloudWatch alarm is configured on feed endpoint p95 latency > 200 ms
+* The Docker image has been built
 
 **WHEN**
-* p95 latency exceeds 200 ms over a 5-minute window
+* `docker run --rm kata-tests` is executed
 
 **THEN**
-* The alarm transitions to ALARM state
+* pytest discovers tests under `tests/`
+* All feed tests pass
+* Exit code is 0

@@ -164,21 +164,34 @@ SO THAT clients can retrieve the conversation between the authenticated user and
 
 ---
 
-## MSG-INFRA-001.1: Deploy Messaging Service
+## MSG-INFRA-001.1: Docker Image Builds and Messaging Container Starts
 
-**Architecture Reference**: Section 5.1 — Messaging Service container
+**Architecture Reference**: Section 7 — Deployment View; Section 7.3 — Container Mapping (`api`)
 **Parent**: MSG-STORY-001
 
 AS A developer
-I WANT the Messaging Service deployed as a runnable unit
-SO THAT DM endpoints are reachable
+I WANT the Docker image to build and the `api` container to start
+SO THAT DM endpoints are reachable locally
 
-### SCENARIO 1: Service starts and health check passes
+### SCENARIO 1: Image builds without errors
 
 **Scenario ID**: MSG-INFRA-001.1-S1
 
 **GIVEN**
-* The Messaging Service container is deployed
+* A `Dockerfile` exists at the project root
+
+**WHEN**
+* `docker build -t kata-tests .` is executed
+
+**THEN**
+* The build exits with code 0
+
+### SCENARIO 2: Container starts and health check passes
+
+**Scenario ID**: MSG-INFRA-001.1-S2
+
+**GIVEN**
+* `docker compose up api` is running
 
 **WHEN**
 * `GET /health` is called
@@ -194,7 +207,7 @@ SO THAT DM endpoints are reachable
 **Parent**: MSG-STORY-001
 
 AS A developer
-I WANT a `messages` table in PostgreSQL owned exclusively by the Messaging Service
+I WANT a `messages` table created via migration when the `postgres` container starts
 SO THAT DMs are persisted and strictly isolated from public post data
 
 ### SCENARIO 1: Message row is insertable and queryable by participants only
@@ -202,7 +215,8 @@ SO THAT DMs are persisted and strictly isolated from public post data
 **Scenario ID**: MSG-INFRA-001.2-S1
 
 **GIVEN**
-* The `messages` table exists with columns `(message_id, sender_id, recipient_id, text, created_at)`
+* The `postgres` container is running
+* The migration has created the `messages` table with columns `(message_id, sender_id, recipient_id, text, created_at)`
 * No foreign keys reference the `posts` table
 
 **WHEN**
@@ -210,17 +224,16 @@ SO THAT DMs are persisted and strictly isolated from public post data
 
 **THEN**
 * The row is retrievable by `(sender_id, recipient_id)` pair
-* No other service schema references this table
 
 ---
 
-## MSG-INFRA-001.3: Configure Async Notification Event for DMs
+## MSG-INFRA-001.3: Configure Redis Stream for dm.created Events
 
 **Architecture Reference**: Section 6.3 — recipient notified asynchronously via Notification Service
 **Parent**: MSG-STORY-001
 
 AS A developer
-I WANT the Messaging Service to emit a notification event when a DM is sent
+I WANT the `messages:events` Redis Stream and `notification-service` consumer group created at startup
 SO THAT the recipient is notified asynchronously
 
 ### SCENARIO 1: DM notification event is consumed by Notification Service
@@ -228,35 +241,38 @@ SO THAT the recipient is notified asynchronously
 **Scenario ID**: MSG-INFRA-001.3-S1
 
 **GIVEN**
-* A DM is sent and a `dm.created` event is written to the Redis Stream
-* The `notification-service` consumer group is registered on the stream
+* The `redis` container is running
+* Consumer group `notification-service` is registered on stream `messages:events`
 
 **WHEN**
-* The Notification Service processes the event
+* A `dm.created` event is written to the stream
 
 **THEN**
+* The Notification Service reads it via `XREADGROUP GROUP notification-service`
 * A notification row is created for the recipient with `type: "dm"`
 
 ---
 
-## MSG-INFRA-001.4: CloudWatch Monitoring for Messaging Service
+## MSG-INFRA-001.4: pytest Suite Runs Inside Docker
 
-**Architecture Reference**: Section 8 — Crosscutting Concepts (observability)
+**Architecture Reference**: Section 7 — Deployment View
 **Parent**: MSG-STORY-001
 
 AS A developer
-I WANT log groups and alarms for the Messaging Service
-SO THAT errors are observable
+I WANT the full pytest suite to execute inside the Docker container
+SO THAT messaging behaviour is verified in the same environment as CI
 
-### SCENARIO 1: Error rate alarm triggers
+### SCENARIO 1: Tests are discovered and executed
 
 **Scenario ID**: MSG-INFRA-001.4-S1
 
 **GIVEN**
-* A CloudWatch alarm is configured on 5xx error rate > 1% over 5 minutes
+* The Docker image has been built
 
 **WHEN**
-* The Messaging Service returns > 1% 5xx responses in a 5-minute window
+* `docker run --rm kata-tests` is executed
 
 **THEN**
-* The alarm transitions to ALARM state
+* pytest discovers tests under `tests/`
+* All messaging tests pass
+* Exit code is 0
