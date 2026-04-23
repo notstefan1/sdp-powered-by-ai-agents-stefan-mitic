@@ -61,6 +61,33 @@ class DbUserStore:
             return None
         return {"user_id": row[0], "password_hash": row[1]}
 
+    def get_by_id(self, user_id: str):
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, username FROM users WHERE user_id = %s", (user_id,)
+            )
+            row = cur.fetchone()
+        return {"user_id": row[0], "username": row[1]} if row else None
+
+    def search(self, query: str) -> list[dict]:
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, username FROM users WHERE username ILIKE %s LIMIT 20",
+                (f"%{query}%",),
+            )
+            return [{"user_id": r[0], "username": r[1]} for r in cur.fetchall()]
+
+    def all_user_ids(self) -> list[str]:
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT user_id FROM users")
+            return [r[0] for r in cur.fetchall()]
+
 
 class AuthService:
     def __init__(self, store: UserStore):

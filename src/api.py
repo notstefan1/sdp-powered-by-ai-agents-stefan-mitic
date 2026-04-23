@@ -14,7 +14,11 @@ from src.auth import AuthService, DbUserStore, UserStore
 from src.db import get_connection, run_migrations
 from src.feed import FeedCache, FeedService
 from src.messaging import DbMessageRepository, MessageRepository, MessagingService
-from src.notification import NotificationRepository, NotificationService
+from src.notification import (
+    DbNotificationRepository,
+    NotificationRepository,
+    NotificationService,
+)
 from src.post import (
     DbPostRepository,
     EventEmitter,
@@ -70,23 +74,30 @@ def create_app() -> FastAPI:
             follow_repo = DbFollowRepository()
             post_repo = DbPostRepository()
             msg_repo = DbMessageRepository()
+            notif_repo = DbNotificationRepository()
+            # seed known_users from DB so messaging works for existing users
+            known_users = set(user_store.all_user_ids())
         except Exception:
             user_store = UserStore()
             follow_repo = FollowRepository()
             post_repo = PostRepository()
             msg_repo = MessageRepository()
+            notif_repo = NotificationRepository()
+            known_users = set()
     else:
         user_store = UserStore()
         follow_repo = FollowRepository()
         post_repo = PostRepository()
         msg_repo = MessageRepository()
+        notif_repo = NotificationRepository()
+        known_users = set()
 
-    user_service = UserService(follow_repo, known_users=set())
+    user_service = UserService(follow_repo, known_users=known_users)
     auth_service = AuthService(user_store)
     emitter = EventEmitter()
     post_service = PostService(post_repo, emitter, MentionParser({}))
     feed_service = FeedService(FeedCache(), follow_repo, post_repo)
-    notif_service = NotificationService(NotificationRepository())
+    notif_service = NotificationService(notif_repo)
     msg_service = MessagingService(msg_repo, user_service._users, emitter)
 
     current_user = _Auth(auth_service)
@@ -111,6 +122,30 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e
 
+    # --- Users ---
+    @app.get("/users/search")
+    def search_users(q: str, user_id: str = Depends(current_user)):
+        if not hasattr(user_store, "search"):
+            return {"users": []}
+        return {"users": user_store.search(q)}
+
+    @app.get("/users/{uid}")
+    def get_user(uid: str, user_id: str = Depends(current_user)):
+        if not hasattr(user_store, "get_by_id"):
+            raise HTTPException(status_code=404, detail="not_found")
+        u = user_store.get_by_id(uid)
+        if not u:
+            raise HTTPException(status_code=404, detail="not_found")
+        followers = follow_repo.followers_of(uid)
+        following = follow_repo.followees_of(uid)
+        return {
+            **u,
+            "follower_count": len(followers),
+            "following_count": len(following),
+            "is_following": user_id in followers,
+        }
+
+    # --- Posts ---
     class PostBody(BaseModel):
         text: str
 
@@ -120,9 +155,7 @@ def create_app() -> FastAPI:
             result = post_service.publish(user_id, body.text)
             ts = time.time()
             feed_service.fan_out(result["post_id"], user_id, ts)
-            # also add to author's own feed
-            feed_cache = feed_service._cache
-            feed_cache.zadd(user_id, ts, result["post_id"])
+            feed_service._cache.zadd(user_id, ts, result["post_id"])
             if emitter.events:
                 notif_service.handle_post_created(emitter.events[-1])
             return result
@@ -132,9 +165,22 @@ def create_app() -> FastAPI:
     @app.get("/feed")
     def get_feed(user_id: str = Depends(current_user)):
         post_ids = feed_service.get_feed(user_id)
-        posts = [vars(p) for pid in post_ids if (p := post_repo.get(pid)) is not None]
+        posts = []
+        for pid in post_ids:
+            p = post_repo.get(pid)
+            if p is None:
+                continue
+            row = vars(p).copy()
+            # resolve author username
+            if hasattr(user_store, "get_by_id"):
+                u = user_store.get_by_id(p.author_id)
+                row["author_username"] = u["username"] if u else p.author_id
+            else:
+                row["author_username"] = p.author_id
+            posts.append(row)
         return {"posts": posts}
 
+    # --- Follow ---
     @app.post("/users/{followee_id}/follow", status_code=201)
     def follow(followee_id: str, user_id: str = Depends(current_user)):
         try:
@@ -150,9 +196,18 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
+    # --- Notifications ---
     @app.get("/notifications")
     def get_notifications(user_id: str = Depends(current_user)):
-        return {"notifications": [vars(n) for n in notif_service.get_unread(user_id)]}
+        notifs = notif_service.get_unread(user_id)
+        result = []
+        for n in notifs:
+            row = vars(n).copy()
+            if hasattr(user_store, "get_by_id") and n.author_id:
+                u = user_store.get_by_id(n.author_id)
+                row["author_username"] = u["username"] if u else n.author_id
+            result.append(row)
+        return {"notifications": result}
 
     @app.post("/notifications/{notification_id}/read", status_code=204)
     def mark_read(notification_id: str, user_id: str = Depends(current_user)):
@@ -161,6 +216,7 @@ def create_app() -> FastAPI:
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
+    # --- Messages ---
     class MessageBody(BaseModel):
         recipient_id: str
         text: str
@@ -177,24 +233,22 @@ def create_app() -> FastAPI:
         msgs = msg_service.get_conversation(user_id, other_id)
         return {"messages": [vars(m) for m in msgs]}
 
+    # --- Health ---
     @app.get("/health")
     def health():
         pg_status = "ok"
         redis_status = "ok"
-
         if db_url:
             try:
                 with get_connection() as conn:
                     conn.execute("SELECT 1")
             except Exception:
                 pg_status = "error"
-
         if redis_url:
             try:
                 redis_lib.from_url(redis_url).ping()
             except Exception:
                 redis_status = "error"
-
         overall = "ok" if pg_status == "ok" and redis_status == "ok" else "degraded"
         return {"status": overall, "postgres": pg_status, "redis": redis_status}
 

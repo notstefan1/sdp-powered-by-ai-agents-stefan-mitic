@@ -6,87 +6,105 @@
   <title>SocialApp</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #1c1e21; }
 
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f0f2f5;
-      color: #1c1e21;
-      min-height: 100vh;
-    }
+    /* ── Auth ── */
+    #auth-section { max-width: 400px; margin: 4rem auto; padding: 0 1rem; }
+    #auth-section h1 { font-size: 2rem; color: #1877f2; margin-bottom: 1.5rem; text-align: center; }
 
+    /* ── Nav ── */
     nav {
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-      padding: .75rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      background: #fff; border-bottom: 1px solid #ddd;
+      padding: .75rem 1.5rem; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 10;
     }
-    nav .brand { font-weight: 700; font-size: 1.2rem; color: #1877f2; }
-    nav .user-info { display: flex; align-items: center; gap: .75rem; font-size: .9rem; }
-    nav button { font-size: .85rem; }
+    nav .brand { font-weight: 700; font-size: 1.1rem; color: #1877f2; }
+    .nav-tabs { display: flex; gap: .25rem; }
+    .nav-tab {
+      padding: .45rem .9rem; border: none; background: none; cursor: pointer;
+      border-radius: 6px; font-size: .9rem; color: #65676b; font-weight: 600;
+      position: relative;
+    }
+    .nav-tab:hover { background: #f0f2f5; }
+    .nav-tab.active { color: #1877f2; background: #e7f0fd; }
+    .badge {
+      position: absolute; top: 2px; right: 2px;
+      background: #e41e3f; color: #fff; border-radius: 10px;
+      font-size: .65rem; padding: 1px 5px; font-weight: 700;
+    }
+    .nav-right { display: flex; align-items: center; gap: .75rem; font-size: .9rem; }
 
+    /* ── Layout ── */
     .container { max-width: 600px; margin: 1.5rem auto; padding: 0 1rem; }
+    .page { display: none; }
+    .page.active { display: block; }
 
+    /* ── Cards ── */
     .card {
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 1rem;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      padding: 1.25rem; margin-bottom: 1rem;
     }
 
-    .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #444; }
-
+    /* ── Forms ── */
     input, textarea {
-      width: 100%;
-      padding: .6rem .75rem;
-      border: 1px solid #ccd0d5;
-      border-radius: 6px;
-      font-size: .95rem;
-      margin-bottom: .6rem;
-      font-family: inherit;
+      width: 100%; padding: .6rem .75rem; border: 1px solid #ccd0d5;
+      border-radius: 6px; font-size: .95rem; margin-bottom: .6rem; font-family: inherit;
     }
     input:focus, textarea:focus { outline: none; border-color: #1877f2; }
     textarea { resize: vertical; min-height: 70px; }
 
-    .btn-row { display: flex; gap: .5rem; flex-wrap: wrap; }
-
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
     button {
-      padding: .5rem 1.1rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: .9rem;
-      font-weight: 600;
-      background: #1877f2;
-      color: #fff;
+      padding: .5rem 1.1rem; border: none; border-radius: 6px; cursor: pointer;
+      font-size: .9rem; font-weight: 600; background: #1877f2; color: #fff;
       transition: background .15s;
     }
     button:hover { background: #166fe5; }
     button.secondary { background: #e4e6eb; color: #1c1e21; }
     button.secondary:hover { background: #d8dadf; }
+    button.danger { background: #fff; color: #d93025; border: 1px solid #d93025; }
+    button.danger:hover { background: #fce8e6; }
+    button.sm { padding: .3rem .7rem; font-size: .82rem; }
 
+    /* ── Feedback ── */
     .error { color: #d93025; font-size: .85rem; margin-top: .3rem; }
     .success { color: #1a7f37; font-size: .85rem; margin-top: .3rem; }
+    .muted { color: #65676b; font-size: .85rem; }
+    .empty { color: #65676b; font-size: .9rem; text-align: center; padding: 2rem 0; }
 
-    .post-item {
-      border-bottom: 1px solid #f0f2f5;
-      padding: .85rem 0;
-    }
+    /* ── Posts ── */
+    .post-item { border-bottom: 1px solid #f0f2f5; padding: .9rem 0; }
     .post-item:last-child { border-bottom: none; }
-    .post-meta { font-size: .8rem; color: #65676b; margin-bottom: .3rem; }
-    .post-text { font-size: .95rem; line-height: 1.4; }
+    .post-meta { font-size: .82rem; color: #65676b; margin-bottom: .3rem; }
+    .post-meta strong { color: #1c1e21; }
+    .post-text { font-size: .95rem; line-height: 1.5; }
 
-    .empty { color: #65676b; font-size: .9rem; text-align: center; padding: 1.5rem 0; }
+    /* ── Users ── */
+    .user-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 0; border-bottom: 1px solid #f0f2f5;
+    }
+    .user-item:last-child { border-bottom: none; }
+    .user-name { font-weight: 600; }
+    .user-stats { font-size: .82rem; color: #65676b; }
 
-    #auth-section { max-width: 400px; margin: 3rem auto; padding: 0 1rem; }
-    #auth-section .card { padding: 2rem; }
-    #auth-section h1 { font-size: 1.5rem; margin-bottom: 1.25rem; color: #1877f2; }
+    /* ── Notifications ── */
+    .notif-item { padding: .75rem 0; border-bottom: 1px solid #f0f2f5; font-size: .9rem; }
+    .notif-item:last-child { border-bottom: none; }
 
+    /* ── DMs ── */
+    .msg-item { padding: .5rem 0; }
+    .msg-item .bubble {
+      display: inline-block; padding: .5rem .85rem; border-radius: 18px;
+      max-width: 80%; font-size: .9rem; line-height: 1.4;
+    }
+    .msg-item.mine { text-align: right; }
+    .msg-item.mine .bubble { background: #1877f2; color: #fff; }
+    .msg-item.theirs .bubble { background: #e4e6eb; color: #1c1e21; }
+    .msg-sender { font-size: .75rem; color: #65676b; margin-bottom: .2rem; }
+
+    /* ── Tabs (auth) ── */
     .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
     .tab {
       flex: 1; padding: .5rem; text-align: center; cursor: pointer;
@@ -100,12 +118,13 @@
 </head>
 <body>
 
+<!-- ── Auth ── -->
 <section id="auth-section">
   <div class="card">
     <h1>SocialApp</h1>
     <div class="tabs">
-      <button class="tab active" onclick="showTab('login')">Login</button>
-      <button class="tab" onclick="showTab('register')">Register</button>
+      <button class="tab active" onclick="showAuthTab('login')">Login</button>
+      <button class="tab" onclick="showAuthTab('register')">Register</button>
     </div>
     <div id="tab-login">
       <input id="login-username" placeholder="Username" autocomplete="username">
@@ -123,91 +142,117 @@
   </div>
 </section>
 
+<!-- ── App ── -->
 <div id="app">
   <nav>
     <span class="brand">SocialApp</span>
-    <div class="user-info">
-      <span id="whoami"></span>
-      <button class="secondary" onclick="logout()">Logout</button>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('feed')" id="tab-feed">Feed</button>
+      <button class="nav-tab" onclick="showPage('people')" id="tab-people">People</button>
+      <button class="nav-tab" onclick="showPage('dms')" id="tab-dms">Messages</button>
+      <button class="nav-tab" onclick="showPage('notifs')" id="tab-notifs">
+        Notifications<span class="badge" id="notif-badge" style="display:none"></span>
+      </button>
+    </div>
+    <div class="nav-right">
+      <span class="muted" id="whoami"></span>
+      <button class="secondary sm" onclick="logout()">Logout</button>
     </div>
   </nav>
 
   <div class="container">
-    <div class="card">
-      <textarea id="post-text" placeholder="What's on your mind? (max 280 chars)" maxlength="280"></textarea>
-      <div class="btn-row">
-        <button onclick="publish()">Post</button>
-        <span id="char-count" style="align-self:center;font-size:.85rem;color:#65676b"></span>
+
+    <!-- Feed -->
+    <div class="page active" id="page-feed">
+      <div class="card">
+        <textarea id="post-text" placeholder="What's on your mind? (max 280 chars)" maxlength="280"></textarea>
+        <div class="btn-row">
+          <button onclick="publish()">Post</button>
+          <span class="muted" id="char-count"></span>
+          <span class="error" id="post-error"></span>
+        </div>
       </div>
-      <p class="error" id="post-error"></p>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <strong>Your feed</strong>
+          <button class="secondary sm" onclick="loadFeed()">Refresh</button>
+        </div>
+        <div id="feed-list"><p class="empty">Loading…</p></div>
+      </div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-        <h2 style="margin:0">Feed</h2>
-        <button class="secondary" onclick="loadFeed()" style="font-size:.8rem;padding:.3rem .7rem">Refresh</button>
+    <!-- People -->
+    <div class="page" id="page-people">
+      <div class="card">
+        <div class="btn-row" style="margin-bottom:.75rem">
+          <input id="search-q" placeholder="Search users…" style="margin:0;flex:1">
+          <button onclick="searchUsers()">Search</button>
+        </div>
+        <div id="people-list"><p class="empty">Search for users to follow.</p></div>
       </div>
-      <div id="feed"><p class="empty">Loading...</p></div>
     </div>
 
-    <div class="card">
-      <h2>Direct Message</h2>
-      <input id="dm-to" placeholder="Recipient user_id">
-      <input id="dm-text" placeholder="Message">
-      <div class="btn-row">
-        <button onclick="sendDM()">Send</button>
-        <span id="dm-status" style="align-self:center;font-size:.85rem"></span>
+    <!-- DMs -->
+    <div class="page" id="page-dms">
+      <div class="card">
+        <strong>Send a message</strong>
+        <div style="margin-top:.75rem">
+          <input id="dm-search" placeholder="Search recipient…" oninput="dmSearch()">
+          <div id="dm-search-results"></div>
+        </div>
+      </div>
+      <div class="card" id="dm-thread-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <strong id="dm-thread-title">Conversation</strong>
+          <button class="secondary sm" onclick="closeDmThread()">✕</button>
+        </div>
+        <div id="dm-messages" style="max-height:300px;overflow-y:auto;margin-bottom:.75rem"></div>
+        <div class="btn-row">
+          <input id="dm-text" placeholder="Message…" style="margin:0;flex:1" onkeydown="if(event.key==='Enter')sendDM()">
+          <button onclick="sendDM()">Send</button>
+        </div>
       </div>
     </div>
+
+    <!-- Notifications -->
+    <div class="page" id="page-notifs">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <strong>Notifications</strong>
+          <button class="secondary sm" onclick="loadNotifs()">Refresh</button>
+        </div>
+        <div id="notif-list"><p class="empty">No notifications.</p></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
   let token = localStorage.getItem("token");
-  if (token) showApp();
+  let myUserId = localStorage.getItem("userId");
+  let dmRecipientId = null;
 
-  document.getElementById("post-text").addEventListener("input", function () {
-    const len = this.value.length;
-    document.getElementById("char-count").textContent = `${len}/280`;
-  });
+  if (token) initApp();
 
-  function showTab(tab) {
+  // ── Auth ──
+  function showAuthTab(tab) {
     document.getElementById("tab-login").style.display = tab === "login" ? "" : "none";
     document.getElementById("tab-register").style.display = tab === "register" ? "" : "none";
-    document.querySelectorAll(".tab").forEach((t, i) => {
-      t.classList.toggle("active", (i === 0) === (tab === "login"));
-    });
-  }
-
-  function showApp() {
-    document.getElementById("auth-section").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("whoami").textContent = "@" + localStorage.getItem("username");
-    loadFeed();
-  }
-
-  function logout() {
-    localStorage.clear();
-    token = null;
-    document.getElementById("auth-section").style.display = "block";
-    document.getElementById("app").style.display = "none";
+    document.querySelectorAll(".tab").forEach((t, i) =>
+      t.classList.toggle("active", (i === 0) === (tab === "login")));
   }
 
   async function register() {
     const u = document.getElementById("reg-username").value.trim();
     const p = document.getElementById("reg-password").value;
-    const r = await fetch("/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    const d = await r.json();
+    const r = await api("/register", "POST", { username: u, password: p }, false);
     if (r.ok) {
       document.getElementById("reg-success").textContent = "Account created! Please login.";
       document.getElementById("reg-error").textContent = "";
-      showTab("login");
+      showAuthTab("login");
     } else {
-      document.getElementById("reg-error").textContent = d.detail || "Registration failed";
+      document.getElementById("reg-error").textContent = (await r.json()).detail || "Error";
       document.getElementById("reg-success").textContent = "";
     }
   }
@@ -215,36 +260,58 @@
   async function login() {
     const u = document.getElementById("login-username").value.trim();
     const p = document.getElementById("login-password").value;
-    const r = await fetch("/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    if (!r.ok) {
-      document.getElementById("login-error").textContent = "Invalid username or password";
-      return;
-    }
+    const r = await api("/auth/login", "POST", { username: u, password: p }, false);
+    if (!r.ok) { document.getElementById("login-error").textContent = "Invalid credentials"; return; }
     const d = await r.json();
-    token = d.token;
+    token = d.token; myUserId = d.user_id;
     localStorage.setItem("token", token);
     localStorage.setItem("userId", d.user_id);
     localStorage.setItem("username", d.username);
     document.getElementById("login-error").textContent = "";
-    showApp();
+    initApp();
   }
+
+  function logout() {
+    localStorage.clear(); token = null; myUserId = null;
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("app").style.display = "none";
+  }
+
+  function initApp() {
+    document.getElementById("auth-section").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("whoami").textContent = "@" + localStorage.getItem("username");
+    loadFeed();
+    pollNotifs();
+  }
+
+  // ── Navigation ──
+  function showPage(name) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+    document.getElementById("page-" + name).classList.add("active");
+    document.getElementById("tab-" + name).classList.add("active");
+    if (name === "notifs") { loadNotifs(); clearNotifBadge(); }
+    if (name === "feed") loadFeed();
+  }
+
+  // ── API helper ──
+  async function api(path, method = "GET", body = null, auth = true) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth) headers["Authorization"] = "Bearer " + token;
+    return fetch(path, { method, headers, body: body ? JSON.stringify(body) : null });
+  }
+
+  // ── Feed ──
+  document.getElementById("post-text").addEventListener("input", function () {
+    document.getElementById("char-count").textContent = this.value.length + "/280";
+  });
 
   async function publish() {
     const text = document.getElementById("post-text").value.trim();
     if (!text) return;
-    const r = await fetch("/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ text }),
-    });
-    if (!r.ok) {
-      document.getElementById("post-error").textContent = (await r.json()).detail;
-      return;
-    }
+    const r = await api("/posts", "POST", { text });
+    if (!r.ok) { document.getElementById("post-error").textContent = (await r.json()).detail; return; }
     document.getElementById("post-text").value = "";
     document.getElementById("post-error").textContent = "";
     document.getElementById("char-count").textContent = "";
@@ -252,43 +319,165 @@
   }
 
   async function loadFeed() {
-    const r = await fetch("/feed", { headers: { Authorization: "Bearer " + token } });
+    const r = await api("/feed");
     const d = await r.json();
-    const el = document.getElementById("feed");
+    const el = document.getElementById("feed-list");
     if (!d.posts || d.posts.length === 0) {
-      el.innerHTML = '<p class="empty">No posts yet. Write something or follow someone.</p>';
+      el.innerHTML = '<p class="empty">No posts yet. Follow someone or write something.</p>';
       return;
     }
     el.innerHTML = d.posts.map(p => `
       <div class="post-item">
-        <div class="post-meta">@${p.author_id} &middot; ${p.post_id}</div>
-        <div class="post-text">${escHtml(p.text)}</div>
+        <div class="post-meta"><strong>@${esc(p.author_username || p.author_id)}</strong></div>
+        <div class="post-text">${esc(p.text)}</div>
       </div>`).join("");
   }
 
-  async function sendDM() {
-    const to = document.getElementById("dm-to").value.trim();
-    const text = document.getElementById("dm-text").value.trim();
-    if (!to || !text) return;
-    const r = await fetch("/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ recipient_id: to, text }),
-    });
-    const status = document.getElementById("dm-status");
-    if (r.ok) {
-      status.style.color = "#1a7f37";
-      status.textContent = "Sent!";
-      document.getElementById("dm-text").value = "";
-    } else {
-      status.style.color = "#d93025";
-      status.textContent = (await r.json()).detail;
+  // ── People ──
+  async function searchUsers() {
+    const q = document.getElementById("search-q").value.trim();
+    if (!q) return;
+    const r = await api("/users/search?q=" + encodeURIComponent(q));
+    const d = await r.json();
+    const el = document.getElementById("people-list");
+    if (!d.users || d.users.length === 0) {
+      el.innerHTML = '<p class="empty">No users found.</p>'; return;
+    }
+    el.innerHTML = d.users.map(u => `
+      <div class="user-item" id="user-row-${u.user_id}">
+        <div>
+          <div class="user-name">@${esc(u.username)}</div>
+        </div>
+        ${u.user_id !== myUserId ? `<button class="sm secondary" onclick="toggleFollow('${u.user_id}', '${esc(u.username)}')">Follow</button>` : '<span class="muted">You</span>'}
+      </div>`).join("");
+    // check follow status for each
+    d.users.forEach(u => { if (u.user_id !== myUserId) checkFollowStatus(u.user_id); });
+  }
+
+  async function checkFollowStatus(uid) {
+    const r = await api("/users/" + uid);
+    if (!r.ok) return;
+    const d = await r.json();
+    const btn = document.querySelector(`#user-row-${uid} button`);
+    if (btn) {
+      btn.textContent = d.is_following ? "Unfollow" : "Follow";
+      btn.className = d.is_following ? "sm danger" : "sm secondary";
     }
   }
 
-  function escHtml(s) {
-    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  async function toggleFollow(uid, username) {
+    const r = await api("/users/" + uid);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.is_following) {
+      await api("/users/" + uid + "/follow", "DELETE");
+    } else {
+      await api("/users/" + uid + "/follow", "POST");
+    }
+    checkFollowStatus(uid);
   }
+
+  // ── DMs ──
+  async function dmSearch() {
+    const q = document.getElementById("dm-search").value.trim();
+    if (!q) { document.getElementById("dm-search-results").innerHTML = ""; return; }
+    const r = await api("/users/search?q=" + encodeURIComponent(q));
+    const d = await r.json();
+    const el = document.getElementById("dm-search-results");
+    if (!d.users || d.users.length === 0) { el.innerHTML = '<p class="muted">No users found.</p>'; return; }
+    el.innerHTML = d.users.filter(u => u.user_id !== myUserId).map(u => `
+      <div class="user-item">
+        <span class="user-name">@${esc(u.username)}</span>
+        <button class="sm" onclick="openDmThread('${u.user_id}', '${esc(u.username)}')">Message</button>
+      </div>`).join("");
+  }
+
+  async function openDmThread(uid, username) {
+    dmRecipientId = uid;
+    document.getElementById("dm-thread-title").textContent = "@" + username;
+    document.getElementById("dm-thread-card").style.display = "";
+    document.getElementById("dm-search-results").innerHTML = "";
+    document.getElementById("dm-search").value = "";
+    await loadMessages();
+  }
+
+  function closeDmThread() {
+    dmRecipientId = null;
+    document.getElementById("dm-thread-card").style.display = "none";
+  }
+
+  async function loadMessages() {
+    if (!dmRecipientId) return;
+    const r = await api("/messages/" + dmRecipientId);
+    const d = await r.json();
+    const el = document.getElementById("dm-messages");
+    if (!d.messages || d.messages.length === 0) {
+      el.innerHTML = '<p class="empty">No messages yet.</p>'; return;
+    }
+    el.innerHTML = d.messages.map(m => {
+      const mine = m.sender_id === myUserId;
+      return `<div class="msg-item ${mine ? "mine" : "theirs"}">
+        <div class="bubble">${esc(m.text)}</div>
+      </div>`;
+    }).join("");
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function sendDM() {
+    if (!dmRecipientId) return;
+    const text = document.getElementById("dm-text").value.trim();
+    if (!text) return;
+    const r = await api("/messages", "POST", { recipient_id: dmRecipientId, text });
+    if (r.ok) { document.getElementById("dm-text").value = ""; loadMessages(); }
+  }
+
+  // ── Notifications ──
+  async function loadNotifs() {
+    const r = await api("/notifications");
+    const d = await r.json();
+    const el = document.getElementById("notif-list");
+    if (!d.notifications || d.notifications.length === 0) {
+      el.innerHTML = '<p class="empty">No unread notifications.</p>'; return;
+    }
+    el.innerHTML = d.notifications.map(n => `
+      <div class="notif-item">
+        <strong>@${esc(n.author_username || n.author_id)}</strong> mentioned you in a post.
+        <button class="sm secondary" style="margin-left:.5rem" onclick="markRead('${n.notification_id}', this)">Mark read</button>
+      </div>`).join("");
+  }
+
+  async function markRead(id, btn) {
+    await api("/notifications/" + id + "/read", "POST");
+    btn.closest(".notif-item").remove();
+    updateNotifBadge();
+  }
+
+  async function pollNotifs() {
+    await updateNotifBadge();
+    setTimeout(pollNotifs, 30000);
+  }
+
+  async function updateNotifBadge() {
+    const r = await api("/notifications");
+    if (!r.ok) return;
+    const d = await r.json();
+    const count = d.notifications ? d.notifications.length : 0;
+    const badge = document.getElementById("notif-badge");
+    badge.style.display = count > 0 ? "" : "none";
+    badge.textContent = count;
+  }
+
+  function clearNotifBadge() {
+    document.getElementById("notif-badge").style.display = "none";
+  }
+
+  // ── Utils ──
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // allow Enter to search
+  document.getElementById("search-q").addEventListener("keydown", e => { if (e.key === "Enter") searchUsers(); });
 </script>
 </body>
 </html>
