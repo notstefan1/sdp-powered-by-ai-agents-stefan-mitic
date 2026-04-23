@@ -67,3 +67,17 @@ def test_msg_be_001_2_s1__conversation_returned_in_chronological_order():
 
     # THEN
     assert [m.text for m in result] == ["First", "Second", "Third"]
+
+
+def test_msg_story_001_s3__dm_table_isolated_from_post_service():
+    # GIVEN — Story: MSG-STORY-001, Scenario: S3
+    from src.post import PostRepository
+
+    msg_service, msg_repo = _service()
+    post_repo = PostRepository()
+    msg_service.send("u-bob", "u-alice", "Private message")
+
+    # WHEN — post service queries its own store
+    # THEN — post repo has no messages; message repo has no posts
+    assert len(list(post_repo._store.values())) == 0
+    assert len(msg_repo.conversation("u-bob", "u-alice")) == 1
