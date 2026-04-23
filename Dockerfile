@@ -9,5 +9,6 @@ COPY src/ src/
 COPY tests/ tests/
 COPY static/ static/
 COPY migrations/ migrations/
+COPY scripts/ scripts/
 
 CMD ["pytest", "tests/", "-v", "--tb=short"]
