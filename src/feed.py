@@ -20,6 +20,9 @@ class FeedCache:
     def exists(self, user_id: str) -> bool:
         return user_id in self._data
 
+    def invalidate(self, user_id: str) -> None:
+        self._data.pop(user_id, None)
+
 
 class RedisFeedCache:
     """Redis sorted-set backed feed cache."""
@@ -40,6 +43,9 @@ class RedisFeedCache:
 
     def exists(self, user_id: str) -> bool:
         return self._r.exists(self._key(user_id)) > 0
+
+    def invalidate(self, user_id: str) -> None:
+        self._r.delete(self._key(user_id))
 
 
 class FeedService:

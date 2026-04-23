@@ -242,6 +242,7 @@ def create_app() -> FastAPI:
     def unfollow(followee_id: str, user_id: str = Depends(current_user)):
         try:
             user_service.unfollow(user_id, followee_id)
+            feed_service._cache.invalidate(user_id)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 

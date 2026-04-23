@@ -147,6 +147,45 @@ def test_get_post_by_id_not_found(client):
     assert resp.status_code == 404
 
 
+def test_unfollow_removes_posts_from_feed(client):
+    # GIVEN - Story: USER-STORY-001-S2
+    token_alice = _register_and_login(client, "alice")
+    bob_id = client.post(
+        "/register",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    ).json()["user_id"]
+    bob_token = client.post(
+        "/auth/login",
+        json={"username": "bob", "password": "pass"},  # pragma: allowlist secret
+    ).json()["token"]
+    # alice follows bob
+    client.post(
+        f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token_alice}"}
+    )
+    # bob posts
+    client.post(
+        "/posts",
+        json={"text": "Bob post"},
+        headers={"Authorization": f"Bearer {bob_token}"},
+    )
+    # alice sees it
+    feed_before = client.get(
+        "/feed", headers={"Authorization": f"Bearer {token_alice}"}
+    ).json()["posts"]
+    assert any(p["text"] == "Bob post" for p in feed_before)
+
+    # WHEN - alice unfollows bob
+    client.delete(
+        f"/users/{bob_id}/follow", headers={"Authorization": f"Bearer {token_alice}"}
+    )
+
+    # THEN - bob's post is gone from alice's feed
+    feed_after = client.get(
+        "/feed", headers={"Authorization": f"Bearer {token_alice}"}
+    ).json()["posts"]
+    assert not any(p["text"] == "Bob post" for p in feed_after)
+
+
 def test_get_user_profile(client):
     # GIVEN - Story: USER-BE-003.1, USER-BE-003.3
     token = _register_and_login(client, "alice")
