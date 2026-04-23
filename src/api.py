@@ -10,15 +10,18 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
-from src.auth import AuthService, UserStore
-from src.db import get_connection
+from src.auth import AuthService, DbUserStore, UserStore
+from src.db import get_connection, run_migrations
 from src.feed import FeedCache, FeedService
 from src.messaging import MessageRepository, MessagingService
 from src.notification import NotificationRepository, NotificationService
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
 from src.user import FollowRepository, UserService
 
+_STATIC = Path(__file__).parent.parent / "static"
 _bearer = HTTPBearer()
+
+TESTING = os.environ.get("TESTING") == "1"
 
 
 class _Auth:
@@ -34,14 +37,36 @@ class _Auth:
             raise HTTPException(status_code=401, detail="unauthorized") from e
 
 
-_STATIC = Path(__file__).parent.parent / "static"
-
-
 def create_app() -> FastAPI:
+    db_url = os.environ.get("DATABASE_URL")
+    redis_url = os.environ.get("REDIS_URL")
+
+    if not TESTING:
+        if not db_url:
+            raise RuntimeError(
+                "DATABASE_URL is not set. "
+                "Start postgres and set DATABASE_URL, "
+                "or set TESTING=1 for in-memory mode."
+            )
+        if not redis_url:
+            raise RuntimeError(
+                "REDIS_URL is not set. "
+                "Start redis and set REDIS_URL, "
+                "or set TESTING=1 for in-memory mode."
+            )
+
     app = FastAPI()
 
+    if db_url:
+        try:
+            run_migrations()
+            user_store = DbUserStore()
+        except Exception:
+            user_store = UserStore()  # degraded mode - health will report error
+    else:
+        user_store = UserStore()
+
     follow_repo = FollowRepository()
-    user_store = UserStore()
     user_service = UserService(follow_repo, known_users=set())
     auth_service = AuthService(user_store)
     post_repo = PostRepository()
@@ -138,7 +163,6 @@ def create_app() -> FastAPI:
         pg_status = "ok"
         redis_status = "ok"
 
-        db_url = os.environ.get("DATABASE_URL")
         if db_url:
             try:
                 with get_connection() as conn:
@@ -146,7 +170,6 @@ def create_app() -> FastAPI:
             except Exception:
                 pg_status = "error"
 
-        redis_url = os.environ.get("REDIS_URL")
         if redis_url:
             try:
                 redis_lib.from_url(redis_url).ping()

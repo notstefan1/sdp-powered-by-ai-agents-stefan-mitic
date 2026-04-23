@@ -10,6 +10,8 @@ _SECRET = os.environ.get("JWT_SECRET", "dev-secret-key-32-bytes-minimum!")  # no
 
 
 class UserStore:
+    """In-memory user store (used in tests)."""
+
     def __init__(self):
         self._users = {}
 
@@ -25,6 +27,35 @@ class UserStore:
 
     def get(self, username: str):
         return self._users.get(username)
+
+
+class DbUserStore:
+    """PostgreSQL-backed user store."""
+
+    def create_with_id(self, user_id: str, username: str, password: str) -> None:
+        from src.db import get_connection
+
+        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        with get_connection() as conn:
+            conn.execute(
+                "INSERT INTO users (user_id, username, password_hash)"
+                " VALUES (%s, %s, %s) ON CONFLICT (username) DO NOTHING",
+                (user_id, username, pw_hash),
+            )
+            conn.commit()
+
+    def get(self, username: str):
+        from src.db import get_connection
+
+        with get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT user_id, password_hash FROM users WHERE username = %s",
+                (username,),
+            )
+            row = cur.fetchone()
+        if not row:
+            return None
+        return {"user_id": row[0], "password_hash": row[1]}
 
 
 class AuthService:
