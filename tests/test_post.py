@@ -59,3 +59,12 @@ def test_post_be_001_2_s2__unknown_mention_ignored():
 
     # THEN
     assert mentioned == []
+
+
+def test_post_story_001_s3__post_exceeds_character_limit_rejected():
+    # GIVEN — Story: POST-STORY-001, Scenario: S3
+    service = PostService(PostRepository(), EventEmitter(), MentionParser({}))
+
+    # WHEN / THEN
+    with pytest.raises(ValueError, match="280 characters"):
+        service.publish("u-bob", "x" * 281)
