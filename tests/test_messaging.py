@@ -53,3 +53,17 @@ def test_msg_be_001_1_s1__dm_created_event_emitted():
     assert event["message_id"] == result["message_id"]
     assert event["sender_id"] == "u-bob"
     assert event["recipient_id"] == "u-alice"
+
+
+def test_msg_be_001_2_s1__conversation_returned_in_chronological_order():
+    # GIVEN — Story: MSG-BE-001.2, Scenario: S1
+    service, _ = _service()
+    service.send("u-bob", "u-alice", "First")
+    service.send("u-alice", "u-bob", "Second")
+    service.send("u-bob", "u-alice", "Third")
+
+    # WHEN
+    result = service.get_conversation("u-bob", "u-alice")
+
+    # THEN
+    assert [m.text for m in result] == ["First", "Second", "Third"]
