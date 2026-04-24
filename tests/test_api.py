@@ -14,6 +14,21 @@ def client():
     return TestClient(create_app())
 
 
+def test_infra_be_001_2_s1__create_app_raises_on_bad_db_url(monkeypatch):
+    # GIVEN - DATABASE_URL is set but points to an unreachable host
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql://bad:bad@localhost:1/bad",  # pragma: allowlist secret
+    )
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379")
+    monkeypatch.delenv("TESTING", raising=False)
+    # WHEN / THEN - should propagate the DB error, not silently fall back
+    import psycopg
+
+    with pytest.raises(psycopg.OperationalError):
+        create_app()
+
+
 def _register_and_login(client, username="alice"):
     client.post("/register", json={"username": username, "password": _PASS})
     return client.post(

@@ -32,8 +32,6 @@ from src.user import DbFollowRepository, FollowRepository, UserService
 _STATIC = Path(__file__).parent.parent / "static"
 _bearer = HTTPBearer()
 
-TESTING = os.environ.get("TESTING") == "1"
-
 
 class _Auth:
     """Callable dependency wrapper - avoids B008 by deferring Depends to instance."""
@@ -51,8 +49,9 @@ class _Auth:
 def create_app() -> FastAPI:
     db_url = os.environ.get("DATABASE_URL")
     redis_url = os.environ.get("REDIS_URL")
+    testing = os.environ.get("TESTING") == "1"
 
-    if not TESTING:
+    if not testing:
         if not db_url:
             raise RuntimeError(
                 "DATABASE_URL is not set. "
@@ -69,22 +68,14 @@ def create_app() -> FastAPI:
     app = FastAPI()
 
     if db_url:
-        try:
-            run_migrations()
-            user_store = DbUserStore()
-            follow_repo = DbFollowRepository()
-            post_repo = DbPostRepository()
-            msg_repo = DbMessageRepository()
-            notif_repo = DbNotificationRepository()
-            # seed known_users from DB so messaging works for existing users
-            known_users = set(user_store.all_user_ids())
-        except Exception:
-            user_store = UserStore()
-            follow_repo = FollowRepository()
-            post_repo = PostRepository()
-            msg_repo = MessageRepository()
-            notif_repo = NotificationRepository()
-            known_users = set()
+        run_migrations()
+        user_store = DbUserStore()
+        follow_repo = DbFollowRepository()
+        post_repo = DbPostRepository()
+        msg_repo = DbMessageRepository()
+        notif_repo = DbNotificationRepository()
+        known_users = set(user_store.all_user_ids())
+        mention_parser = DbMentionParser()
     else:
         user_store = UserStore()
         follow_repo = FollowRepository()
@@ -92,11 +83,11 @@ def create_app() -> FastAPI:
         msg_repo = MessageRepository()
         notif_repo = NotificationRepository()
         known_users = set()
+        mention_parser = MentionParser({})
 
     user_service = UserService(follow_repo, known_users=known_users)
     auth_service = AuthService(user_store)
     emitter = EventEmitter()
-    mention_parser = DbMentionParser() if db_url else MentionParser({})
     post_service = PostService(post_repo, emitter, mention_parser)
     feed_cache = RedisFeedCache(redis_url) if redis_url else FeedCache()
     feed_service = FeedService(feed_cache, follow_repo, post_repo)
@@ -288,15 +279,15 @@ def create_app() -> FastAPI:
     def health():
         pg_status = "ok"
         redis_status = "ok"
-        if db_url:
+        if os.environ.get("DATABASE_URL"):
             try:
                 with get_connection() as conn:
                     conn.execute("SELECT 1")
             except Exception:
                 pg_status = "error"
-        if redis_url:
+        if os.environ.get("REDIS_URL"):
             try:
-                redis_lib.from_url(redis_url).ping()
+                redis_lib.from_url(os.environ["REDIS_URL"]).ping()
             except Exception:
                 redis_status = "error"
         overall = "ok" if pg_status == "ok" and redis_status == "ok" else "degraded"
