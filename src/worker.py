@@ -16,15 +16,18 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 STREAM = "posts:events"
-GROUP = "notification-service"
+GROUPS = ["notification-service", "feed-service"]
 CONSUMER = "worker-1"
+# The worker reads under the notification-service group; feed-service group is
+# registered so external feed consumers can also read the stream independently.
+_WORKER_GROUP = "notification-service"
 
 
 def ensure_consumer_groups(r: redis.Redis) -> None:
-    for stream in [STREAM]:
+    for group in GROUPS:
         try:
-            r.xgroup_create(stream, GROUP, id="0", mkstream=True)
-            log.info("Created consumer group %s on %s", GROUP, stream)
+            r.xgroup_create(STREAM, group, id="0", mkstream=True)
+            log.info("Created consumer group %s on %s", group, STREAM)
         except redis.exceptions.ResponseError as e:
             if "BUSYGROUP" not in str(e):
                 raise
@@ -38,11 +41,13 @@ def process_once(r: redis.Redis) -> int:
     feed_cache = RedisFeedCache(os.environ["REDIS_URL"])
 
     # reclaim any pending (unacked) entries first
-    claimed = r.xautoclaim(STREAM, GROUP, CONSUMER, min_idle_time=60000, start_id="0-0")
+    claimed = r.xautoclaim(
+        STREAM, _WORKER_GROUP, CONSUMER, min_idle_time=60000, start_id="0-0"
+    )
     messages = claimed[1] if claimed else []
 
     # then read new entries
-    new = r.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=10, block=100)
+    new = r.xreadgroup(_WORKER_GROUP, CONSUMER, {STREAM: ">"}, count=10, block=100)
     if new:
         messages = messages + new[0][1]
 
@@ -50,7 +55,7 @@ def process_once(r: redis.Redis) -> int:
     for msg_id, fields in messages:
         try:
             _handle(fields, notif_service, follow_repo, feed_cache)
-            r.xack(STREAM, GROUP, msg_id)
+            r.xack(STREAM, _WORKER_GROUP, msg_id)
             processed += 1
         except Exception:
             log.exception("Failed to process %s", msg_id)
