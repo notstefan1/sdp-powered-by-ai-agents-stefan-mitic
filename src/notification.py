@@ -14,6 +14,8 @@ class Notification:
     author_id: str
     type: str
     read: bool = False
+    entity_type: str = "post"
+    entity_id: str = ""
 
 
 class NotificationRepository:
@@ -42,14 +44,15 @@ class DbNotificationRepository:
                     "INSERT INTO notifications"
                     " (notification_id, recipient_id, post_id, author_id,"
                     " type, entity_type, entity_id)"
-                    " VALUES (%s,%s,%s,%s,%s,'post',%s)",
+                    " VALUES (%s,%s,%s,%s,%s,%s,%s)",
                     (
                         n.notification_id,
                         n.recipient_id,
                         n.post_id,
                         n.author_id,
                         n.type,
-                        n.post_id,
+                        n.entity_type,
+                        n.entity_id,
                     ),
                 )
                 conn.commit()
@@ -125,6 +128,8 @@ class NotificationService:
                 post_id=event["message_id"],
                 author_id=event["sender_id"],
                 type="dm",
+                entity_type="message",
+                entity_id=event["message_id"],
             )
         )
 
@@ -138,6 +143,8 @@ class NotificationService:
                     post_id=event["post_id"],
                     author_id=event["author_id"],
                     type="mention",
+                    entity_type="post",
+                    entity_id=event["post_id"],
                 )
             )
 

@@ -10,8 +10,27 @@ from src.notification import (
 )
 
 
-def test_notif_infra_002_2_s1__db_repo_reraises_non_unique_errors(monkeypatch):
-    # GIVEN - Story: NOTIF-INFRA-002.2 - only UniqueViolation should be swallowed;
+def test_notif_infra_001_3_s1__dm_notification_has_dm_type():
+    # GIVEN - Story: MSG-INFRA-001.3 - DM notification must have type "dm"
+    # and entity_type "message" so the unique constraint correctly deduplicates
+    service, repo = _service()
+
+    # WHEN
+    service.handle_dm_created(
+        {"message_id": "msg-1", "sender_id": "u-bob", "recipient_id": "u-alice"}
+    )
+
+    # THEN
+    notifs = repo.unread_for("u-alice")
+    assert len(notifs) == 1
+    assert notifs[0].type == "dm"
+    assert notifs[0].entity_type == "message"
+    assert notifs[0].entity_id == "msg-1"
+
+
+def test_notif_infra_002_2_s1__db_repo_reraises_non_unique_errors(
+    monkeypatch,
+):  # GIVEN - Story: NOTIF-INFRA-002.2 - only UniqueViolation should be swallowed;
     # other DB errors must propagate so the worker does not xack a notification
     # that was never actually saved.
     from unittest.mock import MagicMock, patch
