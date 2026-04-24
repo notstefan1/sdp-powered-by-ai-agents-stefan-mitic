@@ -12,6 +12,18 @@ from pydantic import BaseModel
 
 from src.auth import AuthService, DbUserStore, UserStore
 from src.db import get_connection, run_migrations
+from src.exceptions import (
+    AlreadyFollowingError,
+    AuthorRequiredError,
+    InvalidCredentialsError,
+    InvalidTokenError,
+    NotFollowingError,
+    NotificationNotFoundError,
+    PostTooLongError,
+    RecipientNotFoundError,
+    UsernameTakenError,
+    UserNotFoundError,
+)
 from src.feed import FeedCache, FeedService, RedisFeedCache
 from src.messaging import DbMessageRepository, MessageRepository, MessagingService
 from src.notification import (
@@ -42,7 +54,7 @@ class _Auth:
     def __call__(self, creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> str:
         try:
             return self._svc.decode_token(creds.credentials)
-        except ValueError as e:
+        except InvalidTokenError as e:
             raise HTTPException(status_code=401, detail="unauthorized") from e
 
 
@@ -108,17 +120,16 @@ def create_app() -> FastAPI:
             result = user_service.register(body.username, "")
             user_store.create_with_id(result["user_id"], body.username, body.password)
             return result
-        except ValueError as e:
-            raise HTTPException(status_code=409, detail=str(e)) from e
+        except UsernameTakenError as e:
+            raise HTTPException(status_code=409, detail="username_taken") from e
 
     @app.post("/auth/login")
     def login(body: UserBody):
         try:
             return auth_service.login(body.username, body.password)
-        except ValueError as e:
-            raise HTTPException(status_code=401, detail=str(e)) from e
+        except InvalidCredentialsError as e:
+            raise HTTPException(status_code=401, detail="invalid_credentials") from e
 
-    # --- Users ---
     @app.get("/users/search")
     def search_users(q: str, user_id: str = Depends(current_user)):
         if not hasattr(user_store, "search"):
@@ -129,8 +140,8 @@ def create_app() -> FastAPI:
     def get_user_by_username(username: str, user_id: str = Depends(current_user)):
         try:
             return user_service.get_by_username(username)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
+        except UserNotFoundError as e:
+            raise HTTPException(status_code=404, detail="user_not_found") from e
 
     class ProfileBody(BaseModel):
         display_name: str
@@ -140,8 +151,8 @@ def create_app() -> FastAPI:
         try:
             user_service.update_profile(user_id, body.display_name)
             return {"user_id": user_id, "display_name": body.display_name}
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
+        except UserNotFoundError as e:
+            raise HTTPException(status_code=404, detail="user_not_found") from e
 
     @app.get("/users/{uid}")
     def get_user(uid: str, user_id: str = Depends(current_user)):
@@ -190,7 +201,7 @@ def create_app() -> FastAPI:
                 feed_service.fan_out(result["post_id"], user_id, ts)
                 notif_service.handle_post_created(result)
             return {"post_id": result["post_id"]}
-        except ValueError as e:
+        except (PostTooLongError, AuthorRequiredError) as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
 
     @app.get("/feed")
@@ -244,19 +255,19 @@ def create_app() -> FastAPI:
         try:
             user_service.follow(user_id, followee_id)
             return {"status": "ok"}
-        except ValueError as e:
-            code = 404 if str(e) == "user_not_found" else 409
-            raise HTTPException(status_code=code, detail=str(e)) from e
+        except UserNotFoundError as e:
+            raise HTTPException(status_code=404, detail="user_not_found") from e
+        except AlreadyFollowingError as e:
+            raise HTTPException(status_code=409, detail="already_following") from e
 
     @app.delete("/users/{followee_id}/follow", status_code=204)
     def unfollow(followee_id: str, user_id: str = Depends(current_user)):
         try:
             user_service.unfollow(user_id, followee_id)
             feed_service._cache.invalidate(user_id)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
+        except NotFollowingError as e:
+            raise HTTPException(status_code=404, detail="not_following") from e
 
-    # --- Notifications ---
     @app.get("/notifications")
     def get_notifications(user_id: str = Depends(current_user)):
         notifs = notif_service.get_unread(user_id)
@@ -273,10 +284,9 @@ def create_app() -> FastAPI:
     def mark_read(notification_id: str, user_id: str = Depends(current_user)):
         try:
             notif_service.mark_read_for(user_id, notification_id)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
+        except NotificationNotFoundError as e:
+            raise HTTPException(status_code=404, detail="notification_not_found") from e
 
-    # --- Messages ---
     class MessageBody(BaseModel):
         recipient_id: str
         text: str
@@ -285,8 +295,8 @@ def create_app() -> FastAPI:
     def send_message(body: MessageBody, user_id: str = Depends(current_user)):
         try:
             return msg_service.send(user_id, body.recipient_id, body.text)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
+        except RecipientNotFoundError as e:
+            raise HTTPException(status_code=404, detail="recipient_not_found") from e
 
     @app.get("/messages/{other_id}")
     def get_conversation(other_id: str, user_id: str = Depends(current_user)):

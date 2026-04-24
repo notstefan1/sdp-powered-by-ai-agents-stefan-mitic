@@ -3,6 +3,7 @@
 import pytest
 
 from src.auth import AuthService, UserStore
+from src.exceptions import InvalidCredentialsError, InvalidTokenError
 
 
 def test_auth_infra_001_2_s1__password_stored_as_bcrypt_not_plaintext():
@@ -44,7 +45,7 @@ def test_auth_be_001_1_s2__invalid_credentials_raise_error():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="invalid_credentials"):
+    with pytest.raises(InvalidCredentialsError):
         service.login("alice", "wrongpassword")
 
 
@@ -65,5 +66,5 @@ def test_auth_be_001_2_s2__tampered_token_raises_error():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="invalid_token"):
+    with pytest.raises(InvalidTokenError):
         service.decode_token("not.a.valid.token")

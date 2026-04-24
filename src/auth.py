@@ -6,6 +6,12 @@ import uuid
 import bcrypt as _bcrypt
 import jwt
 
+from src.exceptions import (
+    InvalidCredentialsError,
+    InvalidTokenError,
+    UsernameTakenError,
+)
+
 _SECRET = os.environ.get("JWT_SECRET", "dev-secret-key-32-bytes-minimum!")  # nosec
 
 
@@ -25,7 +31,7 @@ class UserStore:
 
     def create_with_id(self, user_id: str, username: str, password: str) -> None:
         if username in self._users:
-            raise ValueError("username_taken")
+            raise UsernameTakenError(username)
         pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
         self._by_id[user_id] = username
@@ -67,7 +73,7 @@ class DbUserStore:
                 conn.commit()
             except Exception as e:
                 conn.rollback()
-                raise ValueError("username_taken") from e
+                raise UsernameTakenError(username) from e
 
     def get(self, username: str):
         from src.db import get_connection
@@ -117,9 +123,9 @@ class AuthService:
     def login(self, username: str, password: str) -> dict:
         user = self._store.get(username)
         if not user:
-            raise ValueError("invalid_credentials")
+            raise InvalidCredentialsError()
         if not _bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
-            raise ValueError("invalid_credentials")
+            raise InvalidCredentialsError()
         token = jwt.encode(
             {"sub": user["user_id"], "username": username}, _SECRET, algorithm="HS256"
         )
@@ -130,4 +136,4 @@ class AuthService:
             payload = jwt.decode(token, _SECRET, algorithms=["HS256"])
             return payload["sub"]
         except Exception as err:
-            raise ValueError("invalid_token") from err
+            raise InvalidTokenError() from err

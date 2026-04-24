@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import UsernameTakenError
 from src.user import FollowRepository, UserService
 
 
@@ -27,5 +28,5 @@ def test_user_be_002_1_s2__duplicate_username_raises_error():
     service.register("alice", "alice@example.com")
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="username_taken"):
+    with pytest.raises(UsernameTakenError):
         service.register("alice", "other@example.com")

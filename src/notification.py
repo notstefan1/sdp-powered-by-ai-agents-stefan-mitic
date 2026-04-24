@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from psycopg.errors import UniqueViolation
 
+from src.exceptions import NotificationNotFoundError
+
 
 @dataclass
 class Notification:
@@ -156,7 +158,7 @@ class NotificationService:
         """NOTIF-BE-003.1 - mark a notification as read."""
         n = self._repo.get_by_id(notification_id)
         if not n:
-            raise ValueError("notification_not_found")
+            raise NotificationNotFoundError(notification_id)
         n.read = True
         if hasattr(self._repo, "mark_read_in_db"):
             self._repo.mark_read_in_db(notification_id)
@@ -165,5 +167,5 @@ class NotificationService:
         """Mark notification as read only when it belongs to recipient_id."""
         n = self._repo.get_by_id(notification_id)
         if not n or n.recipient_id != recipient_id:
-            raise ValueError("notification_not_found")
+            raise NotificationNotFoundError(notification_id)
         self.mark_read(notification_id)

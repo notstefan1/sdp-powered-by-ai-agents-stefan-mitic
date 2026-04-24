@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import RecipientNotFoundError
 from src.messaging import MessageRepository, MessagingService
 
 
@@ -31,7 +32,7 @@ def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
     service, repo = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="recipient_not_found"):
+    with pytest.raises(RecipientNotFoundError):
         service.send("u-bob", "u-ghost", "Hello")
     assert repo.conversation("u-bob", "u-ghost") == []
 

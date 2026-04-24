@@ -4,6 +4,8 @@ import re
 import uuid
 from dataclasses import dataclass, field
 
+from src.exceptions import AuthorRequiredError, PostTooLongError
+
 
 @dataclass
 class Post:
@@ -133,9 +135,9 @@ class PostService:
     def publish(self, author_id: str, text: str) -> dict:
         """POST-BE-001.1 - publish a post; raises ValueError if invalid."""
         if not author_id:
-            raise ValueError("author_id required")
+            raise AuthorRequiredError()
         if len(text) > self.MAX_LENGTH:
-            raise ValueError("Post exceeds 280 characters")
+            raise PostTooLongError(f"Post exceeds {self.MAX_LENGTH} characters")
         post_id = str(uuid.uuid4())
         mentioned = self._mention_parser.parse(text)
         post = Post(

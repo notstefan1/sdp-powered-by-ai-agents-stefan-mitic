@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import NotificationNotFoundError
 from src.notification import (
     DbNotificationRepository,
     Notification,
@@ -141,5 +142,5 @@ def test_notif_be_003_1_s2__cannot_mark_other_users_notification_as_read():
     notif = service.get_unread("u-alice")[0]
 
     # WHEN / THEN - bob cannot mark it read
-    with pytest.raises(ValueError, match="notification_not_found"):
+    with pytest.raises(NotificationNotFoundError):
         service.mark_read_for("u-bob", notif.notification_id)

@@ -3,6 +3,8 @@
 import uuid
 from dataclasses import dataclass
 
+from src.exceptions import RecipientNotFoundError
+
 
 @dataclass
 class Message:
@@ -70,7 +72,7 @@ class MessagingService:
     def send(self, sender_id: str, recipient_id: str, text: str) -> dict:
         """MSG-BE-001.1 - persist DM; raises if recipient unknown."""
         if recipient_id not in self._users:
-            raise ValueError("recipient_not_found")
+            raise RecipientNotFoundError(recipient_id)
         msg = Message(
             message_id=str(uuid.uuid4()),
             sender_id=sender_id,

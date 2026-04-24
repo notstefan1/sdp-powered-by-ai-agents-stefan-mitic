@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import AlreadyFollowingError, NotFollowingError, UserNotFoundError
 from src.user import FollowRepository, UserService
 
 
@@ -28,7 +29,7 @@ def test_user_be_003_1_s2__get_by_username_unknown_raises():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="user_not_found"):
+    with pytest.raises(UserNotFoundError):
         service.get_by_username("nobody")
 
 
@@ -51,7 +52,7 @@ def test_user_be_002_2_s2__update_profile_unknown_user_raises():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="user_not_found"):
+    with pytest.raises(UserNotFoundError):
         service.update_profile("u-ghost", display_name="X")
 
 
@@ -71,7 +72,7 @@ def test_user_be_001_1_s3__follow_nonexistent_user_raises():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="user_not_found"):
+    with pytest.raises(UserNotFoundError):
         service.follow("u-bob", "u-ghost")
 
 
@@ -81,7 +82,7 @@ def test_user_be_001_1_s2__duplicate_follow_returns_conflict():
     service.follow("u-bob", "u-alice")
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="already_following"):
+    with pytest.raises(AlreadyFollowingError):
         service.follow("u-bob", "u-alice")
 
 
@@ -102,5 +103,5 @@ def test_user_be_001_2_s2__unfollow_non_followed_user_raises():
     service, _ = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="not_following"):
+    with pytest.raises(NotFollowingError):
         service.unfollow("u-bob", "u-alice")

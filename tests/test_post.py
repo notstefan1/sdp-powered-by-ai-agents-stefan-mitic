@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import AuthorRequiredError, PostTooLongError
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
 
 
@@ -48,7 +49,7 @@ def test_post_be_001_1_s2__unauthenticated_request_rejected():
     service = PostService(repo, emitter, MentionParser({}))
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="author_id required"):
+    with pytest.raises(AuthorRequiredError):
         service.publish("", "Hello world")
     assert len(emitter.events) == 0
 
@@ -80,5 +81,5 @@ def test_post_story_001_s3__post_exceeds_character_limit_rejected():
     service = PostService(PostRepository(), EventEmitter(), MentionParser({}))
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="280 characters"):
+    with pytest.raises(PostTooLongError):
         service.publish("u-bob", "x" * 281)

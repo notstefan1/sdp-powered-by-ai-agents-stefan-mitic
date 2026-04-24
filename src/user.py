@@ -3,6 +3,12 @@
 import uuid
 
 from src.db import get_connection
+from src.exceptions import (
+    AlreadyFollowingError,
+    NotFollowingError,
+    UsernameTakenError,
+    UserNotFoundError,
+)
 
 
 class FollowRepository:
@@ -75,7 +81,7 @@ class UserService:
         """USER-BE-002.1 - create a new user; raises if username taken."""
         for p in self._profiles.values():
             if p["username"] == username:
-                raise ValueError("username_taken")
+                raise UsernameTakenError(username)
         user_id = f"u-{uuid.uuid4().hex[:8]}"
         self._profiles[user_id] = {
             "user_id": user_id,
@@ -90,24 +96,24 @@ class UserService:
         for p in self._profiles.values():
             if p["username"] == username:
                 return p
-        raise ValueError("user_not_found")
+        raise UserNotFoundError(username)
 
     def update_profile(self, user_id: str, display_name: str) -> None:
         """USER-BE-002.2 - update display name."""
         if user_id not in self._profiles:
-            raise ValueError("user_not_found")
+            raise UserNotFoundError(user_id)
         self._profiles[user_id]["display_name"] = display_name
 
     def follow(self, follower_id: str, followee_id: str) -> None:
         """USER-BE-001.1 - follow a user; raises if duplicate or followee unknown."""
         if followee_id not in self._users:
-            raise ValueError("user_not_found")
+            raise UserNotFoundError(followee_id)
         if self._repo.exists(follower_id, followee_id):
-            raise ValueError("already_following")
+            raise AlreadyFollowingError(followee_id)
         self._repo.add(follower_id, followee_id)
 
     def unfollow(self, follower_id: str, followee_id: str) -> None:
         """USER-BE-001.2 - unfollow a user; raises if not following."""
         if not self._repo.exists(follower_id, followee_id):
-            raise ValueError("not_following")
+            raise NotFollowingError(followee_id)
         self._repo.remove(follower_id, followee_id)
