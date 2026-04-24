@@ -125,6 +125,24 @@ def create_app() -> FastAPI:
             return {"users": []}
         return {"users": user_store.search(q)}
 
+    @app.get("/users/by-username/{username}")
+    def get_user_by_username(username: str, user_id: str = Depends(current_user)):
+        try:
+            return user_service.get_by_username(username)
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+
+    class ProfileBody(BaseModel):
+        display_name: str
+
+    @app.patch("/users/me")
+    def update_profile(body: ProfileBody, user_id: str = Depends(current_user)):
+        try:
+            user_service.update_profile(user_id, body.display_name)
+            return {"user_id": user_id, "display_name": body.display_name}
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+
     @app.get("/users/{uid}")
     def get_user(uid: str, user_id: str = Depends(current_user)):
         if not hasattr(user_store, "get_by_id"):
