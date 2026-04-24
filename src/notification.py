@@ -136,3 +136,10 @@ class NotificationService:
         n.read = True
         if hasattr(self._repo, "mark_read_in_db"):
             self._repo.mark_read_in_db(notification_id)
+
+    def mark_read_for(self, recipient_id: str, notification_id: str) -> None:
+        """Mark notification as read only when it belongs to recipient_id."""
+        n = self._repo.get_by_id(notification_id)
+        if not n or n.recipient_id != recipient_id:
+            raise ValueError("notification_not_found")
+        self.mark_read(notification_id)

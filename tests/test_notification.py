@@ -1,5 +1,7 @@
 """Tests for NOTIF-BE-001.1, NOTIF-BE-001.2"""
 
+import pytest
+
 from src.notification import NotificationRepository, NotificationService
 
 
@@ -74,3 +76,16 @@ def test_notif_be_003_1_s1__mark_read_sets_read_flag():
 
     # THEN
     assert service.get_unread("u-alice") == []
+
+
+def test_notif_be_003_1_s2__cannot_mark_other_users_notification_as_read():
+    # GIVEN - notification belongs to alice
+    service, _ = _service()
+    service.handle_post_created(
+        {"post_id": "post-1", "author_id": "u-bob", "mentioned_user_ids": ["u-alice"]}
+    )
+    notif = service.get_unread("u-alice")[0]
+
+    # WHEN / THEN - bob cannot mark it read
+    with pytest.raises(ValueError, match="notification_not_found"):
+        service.mark_read_for("u-bob", notif.notification_id)

@@ -262,7 +262,7 @@ def create_app() -> FastAPI:
     @app.post("/notifications/{notification_id}/read", status_code=204)
     def mark_read(notification_id: str, user_id: str = Depends(current_user)):
         try:
-            notif_service.mark_read(notification_id)
+            notif_service.mark_read_for(user_id, notification_id)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
 
