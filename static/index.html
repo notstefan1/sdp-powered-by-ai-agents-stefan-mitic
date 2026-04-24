@@ -569,11 +569,16 @@
     if (!d.notifications || d.notifications.length === 0) {
       el.innerHTML = '<p class="empty">No unread notifications.</p>'; return;
     }
-    el.innerHTML = d.notifications.map(n => `
+    el.innerHTML = d.notifications.map(n => {
+      const message = n.type === 'dm'
+        ? 'sent you a direct message'
+        : 'mentioned you in a post';
+      return `
       <div class="notif-item">
-        <strong>@${esc(n.author_username || n.author_id)}</strong> mentioned you in a post.
+        <strong>@${esc(n.author_username || n.author_id)}</strong> ${message}.
         <button class="sm secondary" style="margin-left:.5rem" onclick="markRead('${n.notification_id}', this)">Mark read</button>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
 
   async function markRead(id, btn) {
