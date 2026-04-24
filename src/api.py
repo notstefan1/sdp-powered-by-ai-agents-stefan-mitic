@@ -92,7 +92,9 @@ def create_app() -> FastAPI:
     feed_cache = RedisFeedCache(redis_url) if redis_url else FeedCache()
     feed_service = FeedService(feed_cache, follow_repo, post_repo)
     notif_service = NotificationService(notif_repo)
-    msg_service = MessagingService(msg_repo, user_service._users, emitter)
+    msg_service = MessagingService(
+        msg_repo, user_service._users, emitter, notif_service
+    )
 
     current_user = _Auth(auth_service)
 

@@ -55,10 +55,17 @@ class DbMessageRepository:
 
 
 class MessagingService:
-    def __init__(self, repo: MessageRepository, known_users: set[str], emitter=None):
+    def __init__(
+        self,
+        repo: MessageRepository,
+        known_users: set[str],
+        emitter=None,
+        notif_service=None,
+    ):
         self._repo = repo
         self._users = known_users
-        self._emitter = emitter  # optional EventEmitter for async DM notifications
+        self._emitter = emitter
+        self._notif_service = notif_service
 
     def send(self, sender_id: str, recipient_id: str, text: str) -> dict:
         """MSG-BE-001.1 - persist DM; raises if recipient unknown."""
@@ -75,6 +82,14 @@ class MessagingService:
             self._emitter.emit(
                 {
                     "type": "dm.created",
+                    "message_id": msg.message_id,
+                    "sender_id": sender_id,
+                    "recipient_id": recipient_id,
+                }
+            )
+        if self._notif_service:
+            self._notif_service.handle_dm_created(
+                {
                     "message_id": msg.message_id,
                     "sender_id": sender_id,
                     "recipient_id": recipient_id,

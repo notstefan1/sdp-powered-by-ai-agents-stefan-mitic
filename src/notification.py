@@ -116,6 +116,18 @@ class NotificationService:
     def __init__(self, repo: NotificationRepository):
         self._repo = repo
 
+    def handle_dm_created(self, event: dict) -> None:
+        """MSG-INFRA-001.3 - create a dm notification for the recipient."""
+        self._repo.save(
+            Notification(
+                notification_id=str(uuid.uuid4()),
+                recipient_id=event["recipient_id"],
+                post_id=event["message_id"],
+                author_id=event["sender_id"],
+                type="dm",
+            )
+        )
+
     def handle_post_created(self, event: dict) -> None:
         """NOTIF-BE-001.1 - create a notification for each mentioned user."""
         for uid in event.get("mentioned_user_ids", []):
