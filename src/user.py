@@ -85,6 +85,19 @@ class UserService:
         self._users.add(user_id)
         return {"user_id": user_id, "username": username}
 
+    def get_by_username(self, username: str) -> dict:
+        """USER-BE-003.1 - resolve username to user record."""
+        for p in self._profiles.values():
+            if p["username"] == username:
+                return p
+        raise ValueError("user_not_found")
+
+    def update_profile(self, user_id: str, display_name: str) -> None:
+        """USER-BE-002.2 - update display name."""
+        if user_id not in self._profiles:
+            raise ValueError("user_not_found")
+        self._profiles[user_id]["display_name"] = display_name
+
     def follow(self, follower_id: str, followee_id: str) -> None:
         """USER-BE-001.1 - follow a user; raises if duplicate."""
         if self._repo.exists(follower_id, followee_id):
