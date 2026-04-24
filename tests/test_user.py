@@ -66,6 +66,15 @@ def test_user_be_001_1_s1__follow_relationship_created():
     assert repo.exists("u-bob", "u-alice")
 
 
+def test_user_be_001_1_s3__follow_nonexistent_user_raises():
+    # GIVEN - Story: USER-STORY-001-S3 variant - followee doesn't exist
+    service, _ = _service()
+
+    # WHEN / THEN
+    with pytest.raises(ValueError, match="user_not_found"):
+        service.follow("u-bob", "u-ghost")
+
+
 def test_user_be_001_1_s2__duplicate_follow_returns_conflict():
     # GIVEN - Story: USER-BE-001.1, Scenario: S2
     service, _ = _service()

@@ -99,7 +99,9 @@ class UserService:
         self._profiles[user_id]["display_name"] = display_name
 
     def follow(self, follower_id: str, followee_id: str) -> None:
-        """USER-BE-001.1 - follow a user; raises if duplicate."""
+        """USER-BE-001.1 - follow a user; raises if duplicate or followee unknown."""
+        if followee_id not in self._users:
+            raise ValueError("user_not_found")
         if self._repo.exists(follower_id, followee_id):
             raise ValueError("already_following")
         self._repo.add(follower_id, followee_id)

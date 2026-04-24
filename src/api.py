@@ -245,7 +245,8 @@ def create_app() -> FastAPI:
             user_service.follow(user_id, followee_id)
             return {"status": "ok"}
         except ValueError as e:
-            raise HTTPException(status_code=409, detail=str(e)) from e
+            code = 404 if str(e) == "user_not_found" else 409
+            raise HTTPException(status_code=code, detail=str(e)) from e
 
     @app.delete("/users/{followee_id}/follow", status_code=204)
     def unfollow(followee_id: str, user_id: str = Depends(current_user)):
