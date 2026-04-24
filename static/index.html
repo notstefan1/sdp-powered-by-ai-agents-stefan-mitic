@@ -491,7 +491,7 @@
     const btn = document.querySelector(`#user-row-${uid} button`);
     if (btn) {
       btn.textContent = d.is_following ? "Unfollow" : "Follow";
-      btn.className = d.is_following ? "sm danger" : "sm secondary";
+      btn.className = d.is_following ? "sm danger follow-btn" : "sm secondary follow-btn";
     }
   }
 
