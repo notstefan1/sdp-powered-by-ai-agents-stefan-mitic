@@ -2,7 +2,42 @@
 
 import pytest
 
-from src.notification import NotificationRepository, NotificationService
+from src.notification import (
+    DbNotificationRepository,
+    Notification,
+    NotificationRepository,
+    NotificationService,
+)
+
+
+def test_notif_infra_002_2_s1__db_repo_reraises_non_unique_errors(monkeypatch):
+    # GIVEN - Story: NOTIF-INFRA-002.2 - only UniqueViolation should be swallowed;
+    # other DB errors must propagate so the worker does not xack a notification
+    # that was never actually saved.
+    from unittest.mock import MagicMock, patch
+
+    import psycopg
+
+    repo = DbNotificationRepository()
+    n = Notification(
+        notification_id="n-1",
+        recipient_id="u-alice",
+        post_id="post-1",
+        author_id="u-bob",
+        type="mention",
+    )
+
+    # Simulate a non-unique DB error (e.g. disk full / schema mismatch)
+    mock_conn = MagicMock()
+    mock_conn.__enter__ = lambda s: s
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mock_conn.execute.side_effect = psycopg.OperationalError("disk full")
+
+    with (
+        patch("src.db.get_connection", return_value=mock_conn),
+        pytest.raises(psycopg.OperationalError),
+    ):
+        repo.save(n)
 
 
 def _service():

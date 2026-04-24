@@ -3,6 +3,8 @@
 import uuid
 from dataclasses import dataclass
 
+from psycopg.errors import UniqueViolation
+
 
 @dataclass
 class Notification:
@@ -51,8 +53,11 @@ class DbNotificationRepository:
                     ),
                 )
                 conn.commit()
+            except UniqueViolation:
+                conn.rollback()  # duplicate event re-delivery — idempotent, ignore
             except Exception:
                 conn.rollback()
+                raise
 
     def unread_for(self, recipient_id: str) -> list[Notification]:
         from src.db import get_connection
