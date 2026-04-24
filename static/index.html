@@ -385,7 +385,7 @@
       <div class="post-item">
         <div class="post-meta">
           <strong><a href="#" onclick="openProfile('${p.author_id}');return false">@${esc(p.author_username || p.author_id)}</a></strong>
-          &middot; <a href="#" class="muted" onclick="openPost('${p.post_id}');return false">permalink</a>
+          &middot; <a href="/posts/${p.post_id}" class="muted" target="_blank">permalink</a>
         </div>
         <div class="post-text">${esc(p.text)}</div>
       </div>`).join("");
@@ -422,7 +422,7 @@
             <div class="post-item">
               <div class="post-text">${esc(p.text)}</div>
               <div class="post-meta" style="margin-top:.3rem">
-                <a href="#" class="muted" onclick="openPost('${p.post_id}');return false">permalink</a>
+                <a href="/posts/${p.post_id}" class="muted" target="_blank">permalink</a>
               </div>
             </div>`).join("")
         : '<p class="empty">No posts yet.</p>';
