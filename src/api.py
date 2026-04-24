@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 import redis as redis_lib
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -237,18 +237,12 @@ def create_app() -> FastAPI:
         return {"posts": result}
 
     @app.get("/posts/{post_id}")
-    def get_post(post_id: str, request: Request, user_id: str = Depends(current_user)):
+    def get_post_json(post_id: str):
+        # Individual posts are publicly viewable
         p = post_repo.get(post_id)
         if not p:
             raise HTTPException(status_code=404, detail="not_found")
 
-        # Check if browser is requesting HTML
-        accept_header = request.headers.get("accept", "")
-        if "text/html" in accept_header and "application/json" not in accept_header:
-            # Return HTML page for browser requests
-            return FileResponse(str(_STATIC / "index.html"))
-
-        # Return JSON for API requests
         row = vars(p).copy()
         if hasattr(user_store, "get_by_id"):
             u = user_store.get_by_id(p.author_id)
@@ -256,6 +250,14 @@ def create_app() -> FastAPI:
         else:
             row["author_username"] = p.author_id
         return row
+
+    @app.get("/posts/{post_id}/", response_class=FileResponse)
+    def get_post_html(post_id: str):
+        # HTML permalink (no auth required for sharing)
+        p = post_repo.get(post_id)
+        if not p:
+            raise HTTPException(status_code=404, detail="not_found")
+        return str(_STATIC / "index.html")
 
     # --- Follow ---
     @app.post("/users/{followee_id}/follow", status_code=201)

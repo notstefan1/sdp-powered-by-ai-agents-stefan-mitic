@@ -249,7 +249,65 @@
   let myUserId = localStorage.getItem("userId");
   let dmRecipientId = null;
 
-  if (token) initApp();
+  if (token) {
+    initApp();
+  } else {
+    // Check if we're on a permalink URL even without auth
+    checkPermalink();
+  }
+
+  // Check if we're on a permalink URL and show that post
+  function checkPermalink() {
+    const path = window.location.pathname;
+    const match = path.match(/^\/posts\/([^\/]+)\/?$/);
+    if (match) {
+      const postId = match[1];
+      if (token) {
+        // If logged in, use the existing openPost function
+        openPost(postId);
+      } else {
+        // If not logged in, show a simple post view
+        showPermalinkPost(postId);
+      }
+    }
+  }
+
+  // Show post for unauthenticated users
+  async function showPermalinkPost(postId) {
+    document.getElementById("auth-section").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    // Hide nav and show minimal post view
+    document.querySelector("nav").style.display = "none";
+    document.querySelector(".container").innerHTML = `
+      <div class="card">
+        <div id="permalink-post">Loading post...</div>
+        <div style="margin-top: 1rem;">
+          <a href="/" class="btn secondary">← Back to SocialApp</a>
+        </div>
+      </div>
+    `;
+
+    // Fetch post without auth (this will work for the HTML route)
+    try {
+      const response = await fetch(\`/posts/\${postId}\`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (response.ok) {
+        const post = await response.json();
+        document.getElementById("permalink-post").innerHTML = \`
+          <div class="post-meta">
+            <strong>@\${esc(post.author_username || post.author_id)}</strong>
+          </div>
+          <div class="post-text">\${esc(post.text)}</div>
+        \`;
+      } else {
+        document.getElementById("permalink-post").innerHTML = "Post not found.";
+      }
+    } catch (e) {
+      document.getElementById("permalink-post").innerHTML = "Error loading post.";
+    }
+  }
 
   // ── Auth ──
   function showAuthTab(tab) {
@@ -332,6 +390,8 @@
     showPage("feed");
     loadFeed();
     pollNotifs();
+    // Check if we're on a permalink URL
+    checkPermalink();
   }
 
   // ── Navigation ──
@@ -385,7 +445,7 @@
       <div class="post-item">
         <div class="post-meta">
           <strong><a href="#" onclick="openProfile('${p.author_id}');return false">@${esc(p.author_username || p.author_id)}</a></strong>
-          &middot; <a href="/posts/${p.post_id}" class="muted" target="_blank">permalink</a>
+          &middot; <a href="/posts/${p.post_id}/" class="muted" target="_blank">permalink</a>
         </div>
         <div class="post-text">${esc(p.text)}</div>
       </div>`).join("");
@@ -422,7 +482,7 @@
             <div class="post-item">
               <div class="post-text">${esc(p.text)}</div>
               <div class="post-meta" style="margin-top:.3rem">
-                <a href="/posts/${p.post_id}" class="muted" target="_blank">permalink</a>
+                <a href="/posts/${p.post_id}/" class="muted" target="_blank">permalink</a>
               </div>
             </div>`).join("")
         : '<p class="empty">No posts yet.</p>';
