@@ -2,11 +2,21 @@
 
 import os
 
-import pytest
-
 # Unit tests run without real infrastructure.
 # Integration tests are skipped unless DATABASE_URL is set (i.e. inside Docker).
-if not os.environ.get("DATABASE_URL"):
+# Check if we're in Docker by looking for /.dockerenv file
+import pathlib
+
+import pytest
+
+in_docker = pathlib.Path("/.dockerenv").exists()
+
+if not in_docker:
+    # Running locally - force in-memory mode
+    os.environ.pop("DATABASE_URL", None)
+    os.environ.pop("REDIS_URL", None)
+    os.environ["TESTING"] = "1"
+elif not os.environ.get("DATABASE_URL"):
     os.environ["TESTING"] = "1"
 
 _TRUNCATE = (
