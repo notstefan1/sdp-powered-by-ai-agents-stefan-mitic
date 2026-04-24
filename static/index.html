@@ -290,17 +290,17 @@
 
     // Fetch post without auth (this will work for the HTML route)
     try {
-      const response = await fetch(\`/posts/\${postId}\`, {
+      const response = await fetch(`/posts/${postId}`, {
         headers: { 'Accept': 'application/json' }
       });
       if (response.ok) {
         const post = await response.json();
-        document.getElementById("permalink-post").innerHTML = \`
+        document.getElementById("permalink-post").innerHTML = `
           <div class="post-meta">
-            <strong>@\${esc(post.author_username || post.author_id)}</strong>
+            <strong>@${esc(post.author_username || post.author_id)}</strong>
           </div>
-          <div class="post-text">\${esc(post.text)}</div>
-        \`;
+          <div class="post-text">${esc(post.text)}</div>
+        `;
       } else {
         document.getElementById("permalink-post").innerHTML = "Post not found.";
       }
