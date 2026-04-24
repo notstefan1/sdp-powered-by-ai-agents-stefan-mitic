@@ -478,7 +478,7 @@
         <div>
           <div class="user-name">@${esc(u.username)}</div>
         </div>
-        ${u.user_id !== myUserId ? `<button class="sm secondary" onclick="toggleFollow('${u.user_id}', '${esc(u.username)}')">Follow</button>` : '<span class="muted">You</span>'}
+        ${u.user_id !== myUserId ? `<button class="sm secondary follow-btn" data-uid="${u.user_id}" data-username="${esc(u.username)}">Follow</button>` : '<span class="muted">You</span>'}
       </div>`).join("");
     // check follow status for each
     d.users.forEach(u => { if (u.user_id !== myUserId) checkFollowStatus(u.user_id); });
@@ -518,7 +518,7 @@
     el.innerHTML = d.users.filter(u => u.user_id !== myUserId).map(u => `
       <div class="user-item">
         <span class="user-name">@${esc(u.username)}</span>
-        <button class="sm" onclick="openDmThread('${u.user_id}', '${esc(u.username)}')">Message</button>
+        <button class="sm dm-btn" data-uid="${u.user_id}" data-username="${esc(u.username)}">Message</button>
       </div>`).join("");
   }
 
@@ -605,6 +605,14 @@
 
   // allow Enter to search
   document.getElementById("search-q").addEventListener("keydown", e => { if (e.key === "Enter") searchUsers(); });
+
+  // Delegated handlers for dynamically-rendered buttons (avoids onclick with interpolated values)
+  document.addEventListener("click", e => {
+    const followBtn = e.target.closest(".follow-btn");
+    if (followBtn) { toggleFollow(followBtn.dataset.uid, followBtn.dataset.username); return; }
+    const dmBtn = e.target.closest(".dm-btn");
+    if (dmBtn) { openDmThread(dmBtn.dataset.uid, dmBtn.dataset.username); }
+  });
 </script>
 </body>
 </html>
