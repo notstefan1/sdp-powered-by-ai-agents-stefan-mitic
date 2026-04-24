@@ -155,23 +155,21 @@ def create_app() -> FastAPI:
                 import json as _json
 
                 r = redis_lib.from_url(redis_url)
-                event = emitter.events[-1] if emitter.events else {}
                 r.xadd(
                     "posts:events",
                     {
                         "post_id": result["post_id"],
                         "author_id": user_id,
                         "mentioned_user_ids": _json.dumps(
-                            event.get("mentioned_user_ids", [])
+                            result.get("mentioned_user_ids", [])
                         ),
                     },
                 )
             else:
                 # in-memory fallback for tests: process synchronously
                 feed_service.fan_out(result["post_id"], user_id, ts)
-                if emitter.events:
-                    notif_service.handle_post_created(emitter.events[-1])
-            return result
+                notif_service.handle_post_created(result)
+            return {"post_id": result["post_id"]}
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
 

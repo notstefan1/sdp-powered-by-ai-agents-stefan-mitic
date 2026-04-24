@@ -145,11 +145,10 @@ class PostService:
             mentioned_user_ids=mentioned,
         )
         self._repo.save(post)
-        self._emitter.emit(
-            {
-                "post_id": post_id,
-                "author_id": author_id,
-                "mentioned_user_ids": mentioned,
-            }
-        )
-        return {"post_id": post_id}
+        event = {
+            "post_id": post_id,
+            "author_id": author_id,
+            "mentioned_user_ids": mentioned,
+        }
+        self._emitter.emit(event)
+        return event

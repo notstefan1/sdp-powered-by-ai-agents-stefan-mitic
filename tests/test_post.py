@@ -5,7 +5,21 @@ import pytest
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
 
 
-def test_post_be_001_1_s1__valid_post_persisted_and_event_emitted():
+def test_post_be_001_1_s1__publish_returns_event_data_for_stream():
+    # GIVEN - Story: POST-BE-001.1 - publish must return event data so callers
+    # don't need to read from the shared emitter list (race condition fix)
+    repo = PostRepository()
+    emitter = EventEmitter()
+    parser = MentionParser({"alice": "u-123"})
+    service = PostService(repo, emitter, parser)
+
+    # WHEN
+    result = service.publish("u-bob", "Hello @alice")
+
+    # THEN - result contains everything needed to write the Redis stream event
+    assert result["post_id"] is not None
+    assert result["author_id"] == "u-bob"
+    assert result["mentioned_user_ids"] == ["u-123"]
     # GIVEN - Story: POST-BE-001.1, Scenario: S1
     repo = PostRepository()
     emitter = EventEmitter()
