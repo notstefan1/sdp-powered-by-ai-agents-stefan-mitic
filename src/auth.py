@@ -1,9 +1,9 @@
 """Auth Service - AUTH-BE-001.1"""
 
-import hashlib
 import os
 import uuid
 
+import bcrypt as _bcrypt
 import jwt
 
 _SECRET = os.environ.get("JWT_SECRET", "dev-secret-key-32-bytes-minimum!")  # nosec
@@ -18,7 +18,7 @@ class UserStore:
 
     def create(self, username: str, password: str) -> str:
         user_id = f"u-{uuid.uuid4().hex[:8]}"
-        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
         self._by_id[user_id] = username
         return user_id
@@ -26,7 +26,7 @@ class UserStore:
     def create_with_id(self, user_id: str, username: str, password: str) -> None:
         if username in self._users:
             raise ValueError("username_taken")
-        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
         self._users[username] = {"user_id": user_id, "password_hash": pw_hash}
         self._by_id[user_id] = username
 
@@ -56,7 +56,7 @@ class DbUserStore:
     def create_with_id(self, user_id: str, username: str, password: str) -> None:
         from src.db import get_connection
 
-        pw_hash = hashlib.sha256(password.encode()).hexdigest()
+        pw_hash = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
         with get_connection() as conn:
             try:
                 conn.execute(
@@ -118,8 +118,7 @@ class AuthService:
         user = self._store.get(username)
         if not user:
             raise ValueError("invalid_credentials")
-        pw_hash = hashlib.sha256(password.encode()).hexdigest()
-        if user["password_hash"] != pw_hash:
+        if not _bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
             raise ValueError("invalid_credentials")
         token = jwt.encode(
             {"sub": user["user_id"], "username": username}, _SECRET, algorithm="HS256"

@@ -5,6 +5,21 @@ import pytest
 from src.auth import AuthService, UserStore
 
 
+def test_auth_infra_001_2_s1__password_stored_as_bcrypt_not_plaintext():
+    # GIVEN - Story: AUTH-INFRA-001.2, Scenario: S1
+    # Acceptance: stored value is a bcrypt hash, not plaintext
+    store = UserStore()
+
+    # WHEN
+    store.create("bob", "hunter2")
+
+    # THEN - bcrypt hashes start with $2b$
+    record = store.get("bob")
+    assert record["password_hash"].startswith(
+        "$2b$"
+    ), "password must be stored as bcrypt, not plaintext or sha256"
+
+
 def _service():
     store = UserStore()
     store.create("alice", "secret123")
