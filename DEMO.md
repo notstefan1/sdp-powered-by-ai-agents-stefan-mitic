@@ -111,16 +111,18 @@ Navigate to **http://localhost:8000** in your browser.
 
 ---
 
-### Step 4 - @Mention Notifications
-*Stories: NOTIF-STORY-001, NOTIF-BE-001.1, NOTIF-STORY-002, NOTIF-INFRA-001.3*
+### Step 4 - Notifications (@mention + DM)
+*Stories: NOTIF-STORY-001, NOTIF-BE-001.1, NOTIF-STORY-002, NOTIF-INFRA-001.3, MSG-STORY-001-S1*
 
 - As `alice`, publish a post containing `@dave`
 - Switch to the `dave` tab
 - Within ~10 seconds the **notification bell badge** appears
 - Click **Notifications** - see "@alice mentioned you in a post"
 - Click **Mark read** - badge disappears
+- As `alice`, send `dave` a direct message (Step 5)
+- Switch back to `dave` - a new **DM notification** appears in the bell
 
-> **Talking point:** Worker consumes `posts:events` stream, resolves @mentions via DB lookup, writes notification rows. At-least-once delivery via consumer groups and XAUTOCLAIM on restart.
+> **Talking point:** Worker consumes `posts:events` stream for @mention notifications. DM notifications are created synchronously on send. At-least-once delivery via consumer groups and XAUTOCLAIM on restart.
 
 ---
 
@@ -138,11 +140,12 @@ Navigate to **http://localhost:8000** in your browser.
 ---
 
 ### Step 6 - Profile Page
-*Stories: USER-STORY-003, USER-BE-003.1, USER-BE-003.2, USER-BE-003.3*
+*Stories: USER-STORY-003, USER-BE-003.1, USER-BE-003.2, USER-BE-003.3, USER-STORY-002-S3, USER-BE-002.2*
 
 - Click **Profile** in the nav - shows your own posts and follower/following counts
 - In the feed, click any **@username** - opens their profile
 - Profile shows their posts, follower count, and a Follow/Unfollow button
+- On your own profile, edit your display name via `PATCH /users/me`
 
 ---
 
@@ -204,10 +207,11 @@ docker compose up -d     # restarts with existing data
 Browser → FastAPI (api:8000)
               ├── PostgreSQL  (users, follows, posts, messages, notifications)
               ├── Redis       (feed sorted sets + posts:events stream)
-              └── Worker      (consumes stream → fan-out + notifications)
+              └── Worker      (consumes stream → fan-out + @mention notifications)
 ```
 
 - **Feed reads:** Redis ZREVRANGE → SQL fallback on miss
-- **Post writes:** DB insert → Redis Stream event → worker fans out
-- **Notifications:** async, at-least-once via Redis Streams consumer groups
+- **Post writes:** DB insert → Redis Stream event → worker fans out to followers
+- **@mention notifications:** async, at-least-once via Redis Streams consumer groups
+- **DM notifications:** synchronous on send, stored in `notifications` table with `type=dm`
 - **Auth:** JWT (HS256), validated on every protected route
