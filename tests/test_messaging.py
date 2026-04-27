@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.exceptions import RecipientNotFoundError
 from src.messaging import MessageRepository, MessagingService
 
 
@@ -31,13 +32,13 @@ def test_msg_be_001_1_s2__message_to_unknown_user_rejected():
     service, repo = _service()
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="recipient_not_found"):
+    with pytest.raises(RecipientNotFoundError):
         service.send("u-bob", "u-ghost", "Hello")
     assert repo.conversation("u-bob", "u-ghost") == []
 
 
-def test_msg_be_001_1_s1__dm_created_event_emitted():
-    # GIVEN - Story: MSG-BE-001.1, Scenario: S1 (async notification)
+def test_msg_infra_001_3_s1__dm_created_event_emitted():
+    # GIVEN - Story: MSG-INFRA-001.3, Scenario: S1 - dm.created event dispatched async
     from src.post import EventEmitter
 
     emitter = EventEmitter()
@@ -69,7 +70,23 @@ def test_msg_be_001_2_s1__conversation_returned_in_chronological_order():
     assert [m.text for m in result] == ["First", "Second", "Third"]
 
 
-def test_msg_story_001_s3__dm_table_isolated_from_post_service():
+def test_msg_story_001_s1__dm_creates_notification_for_recipient():
+    # GIVEN - Story: MSG-STORY-001, Scenario: S1 - recipient is notified
+    from src.notification import NotificationRepository, NotificationService
+
+    notif_repo = NotificationRepository()
+    notif_service = NotificationService(notif_repo)
+    service, _ = _service()
+    service._notif_service = notif_service  # inject
+
+    # WHEN
+    service.send("u-bob", "u-alice", "Hello")
+
+    # THEN - alice has an unread dm notification
+    notifs = notif_service.get_unread("u-alice")
+    assert len(notifs) == 1
+    assert notifs[0].type == "dm"
+    assert notifs[0].recipient_id == "u-alice"
     # GIVEN - Story: MSG-STORY-001, Scenario: S3
     from src.post import PostRepository
 

@@ -2,10 +2,25 @@
 
 import pytest
 
+from src.exceptions import AuthorRequiredError, PostTooLongError
 from src.post import EventEmitter, MentionParser, PostRepository, PostService
 
 
-def test_post_be_001_1_s1__valid_post_persisted_and_event_emitted():
+def test_post_be_001_1_s1__publish_returns_event_data_for_stream():
+    # GIVEN - Story: POST-BE-001.1 - publish must return event data so callers
+    # don't need to read from the shared emitter list (race condition fix)
+    repo = PostRepository()
+    emitter = EventEmitter()
+    parser = MentionParser({"alice": "u-123"})
+    service = PostService(repo, emitter, parser)
+
+    # WHEN
+    result = service.publish("u-bob", "Hello @alice")
+
+    # THEN - result contains everything needed to write the Redis stream event
+    assert result["post_id"] is not None
+    assert result["author_id"] == "u-bob"
+    assert result["mentioned_user_ids"] == ["u-123"]
     # GIVEN - Story: POST-BE-001.1, Scenario: S1
     repo = PostRepository()
     emitter = EventEmitter()
@@ -34,7 +49,7 @@ def test_post_be_001_1_s2__unauthenticated_request_rejected():
     service = PostService(repo, emitter, MentionParser({}))
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="author_id required"):
+    with pytest.raises(AuthorRequiredError):
         service.publish("", "Hello world")
     assert len(emitter.events) == 0
 
@@ -66,5 +81,5 @@ def test_post_story_001_s3__post_exceeds_character_limit_rejected():
     service = PostService(PostRepository(), EventEmitter(), MentionParser({}))
 
     # WHEN / THEN
-    with pytest.raises(ValueError, match="280 characters"):
+    with pytest.raises(PostTooLongError):
         service.publish("u-bob", "x" * 281)

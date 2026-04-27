@@ -2,27 +2,31 @@ name: CI
 
 on:
   push:
-    branches: [main, 'feature/**', 'fix/**']
+    branches: [ main, "feature/**", "fix/**" ]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
-      - '.github/workflows/ci.yml'
+      - "src/**"
+      - "tests/**"
+      - "migrations/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/ci.yml"
   pull_request:
-    branches: [main]
+    branches: [ main ]
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
-      - '.github/workflows/ci.yml'
+      - "src/**"
+      - "tests/**"
+      - "migrations/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,5 +34,63 @@ jobs:
       - name: Build Docker image
         run: docker build -t kata-tests .
 
-      - name: Run tests
-        run: docker run --rm kata-tests
+      - name: Run unit tests (no infrastructure)
+        run: docker run --rm -e TESTING=1 kata-tests pytest tests/ -v --tb=short
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app # pragma: allowlist secret
+          POSTGRES_DB: app
+        options: >-
+          --health-cmd "pg_isready -U app" --health-interval 5s --health-retries
+          5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Wait for Postgres and Redis
+        run: |
+          wait_for_port() {
+            local host="$1"
+            local port="$2"
+            local retries=60
+            until bash -c "</dev/tcp/${host}/${port}" >/dev/null 2>&1; do
+              retries=$((retries - 1))
+              if [ "$retries" -le 0 ]; then
+                echo "Timed out waiting for ${host}:${port}"
+                exit 1
+              fi
+              sleep 1
+            done
+          }
+
+          wait_for_port 127.0.0.1 5432
+          wait_for_port 127.0.0.1 6379
+          echo "postgres and redis are reachable"
+
+      - name: Run integration tests (with postgres + redis)
+        env:
+          DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app # pragma: allowlist secret
+          REDIS_URL: redis://127.0.0.1:6379
+        run: pytest tests/test_integration.py -v --tb=short
